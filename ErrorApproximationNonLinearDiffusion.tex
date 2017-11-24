@@ -1,0 +1,456 @@
+\documentclass[11pt]{article}
+%-------------preamble begins-------------------
+%\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage[textwidth=6.2in,textheight=9.5in]{geometry}
+\usepackage{amsfonts}
+\usepackage{lmodern}
+%\usepackage{amsmath}
+\usepackage{ amssymb }
+%\usepackage{fancyhdr} 
+\usepackage{array,booktabs}
+\usepackage{csvsimple}
+\usepackage{pdfpages}
+%\usepackage[table,xcdraw]%{xcolor}
+\usepackage{mathtools, nccmath}
+%\usepackage{refcheck}
+\usepackage{subfigure}
+\usepackage{titlesec}
+\usepackage{appendix}
+\usepackage{enumerate}
+%\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\newcommand{\pl}{\partial}
+\newcommand{\D}{\Delta}
+\newcommand{\ul}{\underline}
+\newcommand{\bigv}{\mathbb{V}}
+\newcommand{\Om}{\Omega}
+%\fancyfoot{\thepage}
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand*\familydefault{\sfdefault}
+\sffamily
+\newcommand{\rd}{\mathrm{d}}
+\newcommand{\al}{\mathrm{\alpha}}
+\title{A priori error estimation modelling non-linear diffusion using finite elements and local mass conservation v5}
+\author{Andy Legg}
+\date{Nov 2017}
+%
+%-------------preamble ends---------------------
+\begin{document}
+%-------------start of document body----------
+\maketitle
+\section{Summary}
+This report proposes an a priori error estimate for the solution of a non-linear diffusion equation. The solution uses a finite element algorithm with local mass conservation, following the  approach of \cite{Baines2011}. The moving domain $\Om(t)\subset\mathbb{R}^2$ is divided into a finite number of triangular elements $T_h$.  The velocity $\ul{v}$ is approximated from a discrete form of the governing PDE with standard piecewise linear basis functions defined on each element $K\in T_h$. At a given time known values of saturation $s$ are used to calculate $\ul{v}$. The velocity $\ul{v}$ is used to approximate the revised mesh point positions $\ul{x}$ after a time period $\D{t}$. Local mass conservation is applied over each element $K$ to approximate the updated values of $s$ across  $T_h$. The process is repeated for an appropriate number of time steps. The local error for on $K \in T_h$ is estimated at a given time step $t=n\D{t}$, in the following way:
+\begin{itemize}
+\item calculate the error in $\ul{v}$;
+\item determine the error in the movement of any mesh point $\ul{x};$
+\item determine the error in calculation of $s$.
+\end{itemize}
+The local errors from each of the above stages are summed over every $K \in T_h$ to determine the global error, which was found to be second order in space. A reference problem with a known analytic solution was used to compare the computational order of accuracy with the a priori error estimate. 
+%%
+\section{Introduction}
+The following PDE is used to model the saturation $s(\underline{x},t)$, of a contaminant applied to a porous medium: 
+\begin{equation}
+\label{eq:pde}
+\frac{\partial{s}}{\partial{t}} = \nabla\cdot\left(\al(s)\nabla{s}\right) 
+\end{equation}
+with $s =s(\ul{x},t)$ and $\al(s) >0, \text{ for } \underline{x} \in \Omega{(t)}\subset\mathbb{R}^2, \;t\in(0,T]$. The initial condition is $s(\ul{x},0) = g(\ul{x})$ and the boundary condition $(s,\al{(s)})|_{\pl\Om}=0$.  Let $s \in H^{2}(\Omega)$ and assume the flow within the porous medium is irrotational, so that $\nabla\times\underline{v} = \underline{0}$ where $\underline{v}(\ul{x},t)$ is the internal flow velocity that preserves the local mass $\int_{\Om}sd\Om.$ \\
+\section{Mass Conservation}
+Consider the rate of change of total mass at any time $t$. Using Reynolds Transport Theorem, 
+$$\frac{d}{dt}\int_{\Om(t)}sd\Om = \int_{\Om(t)}\frac{\pl{s}}{\pl{t}}d\Om + \oint_{\pl{\Om(t)}}s\ul{v}\cdot\hat{\ul{n}}dS,  $$
+where $\ul{v}$ is the boundary velocity and $\hat{\ul{n}}$ the unit normal vector on the boundary $\pl{\Om}$. 
+From $(\ref{eq:pde})$,
+$$\frac{d}{dt}\int_{\Om(t)}sd\Om= \int_{\Om(t)}\nabla\cdot\left(\al(s)\nabla{s}\right) + \oint_{\pl{\Om(t)}}s\ul{v}\cdot\hat{\ul{n}}dS. $$
+Applying the Divergence Theorem, this may be written,
+$$\frac{d}{dt}\int_{\Om(t)}sd\Om = \oint_{\pl{\Om(t)}}\left(  \al(s)\nabla{s} +  s\ul{v}\right)\cdot\hat{\ul{n}}dS. $$  
+Since $\al(s), s =0$ on the boundary, we have zero flux and so the RHS of the above equation is zero. Hence
+$$  \frac{d}{dt}\int_{\Om(t)}sd\Om =0, \forall \;t>0 .$$This implies that the total mass remains constant for all time. It is a property of equation $(\ref{eq:pde})$ and the given boundary conditions, that mass is conserved over time.
+%%
+\section{Velocity Equation}
+An equation for the flow velocity may be derived using equation ($\ref{eq:pde}$) and the mass conservation equation:
+\begin{equation}
+\label{eq:masscon}
+\frac{\pl{s} }{\pl{t} } + \nabla.(s\underline{v}) =0.
+\end{equation}
+Subtracting equation $(\ref{eq:masscon})$ from $(\ref{eq:pde})$ gives:
+\begin{equation}
+\label{eq:vel0}
+\nabla\cdot\left(\al(s)\nabla{s}\right) = - \nabla\cdot(s\underline{v}),
+\end{equation}
+from which if $\ul{v}$ is irrotational it can be shown, refer to Appendix $\ref{appendix:helmholtz}$, that
+\begin{equation}
+\label{eq:vel}
+\underline{v} =  -\left(\al(s)/s\right)\nabla{s}.
+\end{equation}
+Finding $\ul{v}$ directly from ($\ref{eq:vel}$) using piecewise linear approximations to $s$ over the elements would give discontinuities in $\ul{v}$ at the mesh points. One solution to this problem is to solve a weak form of equation $(\ref{eq:vel})$ using finite elements.
+\section{A Weak Form of the Velocity Equation}
+\subsection{Existence and uniqueness of solution for continuous case}
+In 2-D Cartesian coordinates let $\ul{v} = (v_1(x,y),v_2(x,y))$. Introduce the function space $ \bigv = H^1(\Om)\equiv\{\ul{v}: \ul{v}, \ul{v}_x, \ul{v}_y  \in [{L}^2(\Omega)]^2\}$ with inner product and norm defined below:
+$$(\ul{v},\ul{w})_{H^{1}(\Om)} = \int_{\Om}(\ul{v}\cdot\ul{w}+ \ul{v}_x\cdot\ul{w}_x + \ul{v}_y\cdot\ul{w}_y )d\Om\quad \forall \;\ul{v},\; \ul{w} \in\bigv$$
+$$ \|\ul{v}\|_{H^1(\Om)} =\left[ \int_{\Om} (|\ul{v}|^2 + |\ul{v}_x|^2 +|\ul{v}_y|^2 )d\Om\right]^{1/2}\; \forall \;\ul{v}\in\bigv$$
+To solve this weak form of equation $\ref{eq:vel}$ we need to find $\ul{v} \in \bigv \text{ s.t. }$
+\begin{equation}
+\label{eq:weakvel}
+\int_{\Omega(t)} \ul{v}\cdot\ul{w}d{\Omega} =  -\int_{\Omega(t)}(\al(s)/s)\nabla{s}\cdot\ul{w}d{\Omega}
+\end{equation}
+$\forall\; \ul{w} \in \bigv$.
+Define the bilinear form $$a(\ul{v},\ul{w}) = \int_{\Om}\ul{v}\cdot\ul{w}d{\Om}$$ and linear form $$L(\ul{w}) =  \int_{\Om}\ul{f}\cdot\ul{w}d\Om, \text{ with } \ul{f} = -(\al(s)/s)\nabla{s}.$$
+Hence equation ($\ref{eq:weakvel}$) may be written:
+\begin{equation}
+\label{eq:weakvel3a}
+a(\ul{v},\ul{w}) = L(\ul{w}),
+\end{equation}
+$\forall\; \ul{w} \in \bigv.$
+To show that equation ($\ref{eq:weakvel3a}$) has a unique solution, the Lax Milgram theorem \cite{Lax2016}, requires the following conditions to be satisfied:
+\begin{enumerate}[(i)]
+\item $a(\cdot,\cdot)$ is symmetric;
+\item $a(\cdot,\cdot)$ is continuous, i.e. $\exists\; \gamma >0\; \text{ s.t. } |a(\ul{v},\ul{w})| \leq \gamma\|\ul{v}\|_{\bigv}\|\ul{w}\|_{\bigv} \quad \forall \ul{v},\;\ul{w} \in \bigv$;
+\item $a(\cdot,\cdot)$ is V-elliptic, i.e. $\exists\; \zeta > 0 \; \text{ s.t. } \; a(\ul{v},\ul{v}) \geq \zeta\|  \ul{v}   \|_{\bigv}^2\quad \forall \; \ul{v}\in\bigv$; and 
+\item $L$ is continuous, i.e. $ \exists\; \Lambda > 0 \; \text{ s.t. } \; |L(\ul{v})| \leq \Lambda\|\ul{v}   \|_{\bigv}\quad \forall\;\ul{v} \in \bigv.$
+\end{enumerate}
+Since $a(\ul{v},\ul{w}) = \int_{\Om}\ul{v}\cdot\ul{w}d{\Om}= \int_{\Om}\ul{w}\cdot\ul{v}d{\Om}= a(\ul{w},\ul{v})$ it follows that $a(\cdot,\cdot)$ is symmetric.\\
+The Cauchy-Schwarz inequality gives 
+$|(\ul{v},\ul{w})_{\bigv}| \leq \|  \ul{v}   \|_{\bigv}\|  \ul{w}   \|_{\bigv}    .$
+Therefore with reference to condition (ii) and choosing $\gamma = 1, a(\cdot,\cdot)$ is continuous.\\   
+Since $a(\ul{v},\ul{v})_{\bigv}= \int_{\Om}|\ul{v}|^2d\Om = (\ul{v},\ul{v})_{\bigv} =     \|  \ul{v}   \|_{\bigv}^2      $ and taking $\zeta = 1$ condition (iii) is satisfied and so $a(\cdot,\cdot)$ is V-elliptic.\\
+Consider $|L(\ul{v})| =   \int_{\Om}\ul{f}\cdot\ul{v}d\Om$. By application of the Cauchy-Schwartz inequality, $|L(\ul{v})| = (\ul{f},\ul{v}) \leq \|\ul{f}\|_{\bigv}\|\ul{v}\|_{\bigv}.$  Recalling that $\ul{f} = -(\al(s)/s)\nabla{s}$, if in condition (iv) we choose $\Lambda = \|\ul{f}\|_{\bigv}$, $L$ is continuous providing $f\ne0$.\\
+Hence there is a unique solution to equation $\ref{eq:weakvel3a}$.
+\subsection{Existence and uniqueness of solution for discrete case}
+Let $\bigv_h$ be an $M$ (finite) dimensional subspace of $\bigv$. Let $\{\ul{\phi_1},\dots,\ul{\phi_M}\}$ be a basis for $\bigv_h$. Therefore $\ul{\phi_i}\in \bigv_h \text{ for } i = 1,\dots,M$ and any $\ul{w}\in \bigv_h$ has the representation 
+\begin{equation}
+\label{eq:lineq}
+\ul{w} = \sum_{j=1}^M\eta_j\ul{ \phi_j} \text{ where }\eta_j \in \mathbb{R}.
+\end{equation}
+In a discrete representation of equation (\ref{eq:weakvel3a}) we want to find $$\ul{v_h}\in \bigv_h \text{ s.t } a(\ul{v_h},\ul{w}) = L(\ul{w}) \quad \forall \; \ul{w} \in \bigv_h.$$
+Since $\ul{\phi_i} \in \bigv_h$
+\begin{equation}
+\label{eq:discrete1}
+a(\ul{v_h},\ul{\phi_i}) = L(\phi_i) \quad \text{ for } i = 1,\dots,M.
+\end{equation}
+Let $$\ul{v_h} = \sum_{j=1}^M\xi_j\ul{ \phi_j}\;\text{ where } \ul{\xi} =  \{\ul{\xi_1},\dots,\ul{\xi_M}\} \text{ and } \ul{\xi_j} \in \mathbb{R}$$ then equation (\ref{eq:discrete1}) becomes
+$$a( \sum_{j=1}^M\xi_j\ul{ \phi_j},\ul{\phi_i}) = L(\ul{\phi_i})\quad \text{for } i=1,\dots,M.$$
+Giving
+$$\sum_{j=1}^Ma( \ul{ \phi_j},\ul{\phi_i})\xi_j = L(\ul{\phi_i})\quad \text{for } i=1,\dots,M.$$
+This equation may be written in matrix form,
+\begin{equation}
+\label{eq:discrete22}
+A\ul{\xi} = \ul{b},
+\end{equation}
+where $$\ul{b} = (b_i)\in \mathbb{R}^M\; \text{ with } b_i = L(\ul{\phi_i} \text{ and } A = (a_{i,j}) \text{ is an } M\times{M} \text{ matrix with elements } a_{i,j} = a(\ul{\phi_i},\ul{\phi_j}).$$
+Note that from the definition of $A$ we can conclude that it is symmetric. From equation $(\ref{eq:lineq})$,
+$$a(\ul{w},\ul{w}) = a(\sum_{i=1}^M\eta_i\ul{ \phi_i},\sum_{j=1}^M\eta_j\ul{ \phi_j}) = \sum_{i=1}^M \sum_{j=1}^M \eta_ia(\ul{\phi_i },\ul{\phi_j })\eta_j = \ul{\eta}\cdot{A}\ul{\eta},$$
+$$L(\ul{w}) = L(\sum_{i=1}^M\eta_i\ul{ \phi_i}) = \sum_{i=1}^M\eta_iL(\ul{\phi_i })=\ul{b}\cdot\ul{\eta}.$$
+Since from the Lax Milgram Theorem condition (iii) we have $a(\ul{w},\ul{w}) \geq \zeta\|\ul{w}\|_{\bigv}^2 > 0, \text{ providing } \ul{w} \neq 0,$ then $\ul{\eta}\cdot{A}\ul{\eta} > 0.$
+This implies that the matrix $A$ is positive definite and so non-singular. Hence there is a unique solution to the system of linear equations $(\ref{eq:discrete22})$ and so to the discrete form of the problem.
+\subsection{Error Estimate in velocity using piecewise linear approximation}
+Consider the case where $\bigv = H^1(\Om)$ and \\$V_h = \{\ul{v}\in \bigv\;: \ul{v}\;\text{ is a piecewise linear function defined each triangle}\; K \in T_h\} \text{ where } \\T_h \text{ is a triangulation of } \Om\subset\mathbb{R}^2.$
+For $K\in{T_h}$ define:
+$$h_K = \text{ longest side of } K,$$
+$$\rho_K = \text{ the diameter of the circle inscribed in } K,$$
+$$h = \max_{K\in{T_h}}h_K.$$
+A condition 
+\begin{equation}
+\label{eq:beta1}
+\rho_K/h_K\geq\beta>0,\quad \forall\;K\in{T_h},
+\end{equation}
+is required to ensure that the triangles $K\in{T_h}$ are not allowed to be arbitrarily thin or have angles that are too small.
+Under these conditions, \cite{Johnson2012} and \cite{Dupont1980}, it can be proved that the error bounds on $\ul{v}\in\bigv,$ approximated by a piecewise linear function $\ul{v}_h\in\bigv_h$ on $K\in{T_h}$ are given by:
+\begin{equation}
+\label{eq:error1}
+\|\ul{v}-\ul{v_h}\|_{L^2(K)} \leq Ch_K^2|\ul{v}|_{H^2(K)},
+\end{equation}
+\begin{equation}
+\label{eq:error2}
+|\ul{v}-\ul{v_h}|_{H_1(K)} \leq (Ch_K^2/\rho_K)|\ul{v}|_{H^2(K)},
+\end{equation}
+where $C \in \mathbb{R}$ is a constant that is independent of $h$.
+These results are used to determine the global interpolation errors, $$\|\ul{v}-\ul{v_h}\|_{L^2(\Om)} \text{ and } |\ul{v}-\ul{v_h}|_{H_1(\Om)}.$$
+Summing error over $K\in{T_h}$ and using inequality (\ref{eq:error1})
+Therefore the global error bound is
+\begin{equation}
+\label{eq:error3}
+\|\ul{v}-\ul{v_h}\|_{L^2(\Om)} \leq Ch^2|\ul{v}|_{H^2(\Om)}.
+\end{equation}
+Similarly for the first derivatives of the global error, summing over $K\in{T_h}$ and using inequalities $(\ref{eq:error2})$ and $(\ref{eq:beta1})$,
+$$|\ul{v}-\ul{v_h}|_{H_1(\Om)}^2 \leq \sum_{K\in{T_h}}C^2(h_K^4/\rho_K^2)|\ul{v}|_{H^2(K)}^2 \leq \sum_{K\in{T_h}}C^2(h_K^2/\beta^2)|\ul{v}|_{H^2(K)}^2 \leq C^2(h^2/\beta^2)|\ul{v}|_{H^2(\Om)}^2.$$
+Therefore the global error bound on the first derivatives is
+\begin{equation}
+\label{eq:error4}
+|\ul{v}-\ul{v_h}|_{H_1(\Om)} \leq C(h/\beta)|\ul{v}|_{H^2(\Om)},
+\end{equation}
+In summary both the continous and discrete versions of the weak velocity equation have unique solutions. The a priori error bounds show that the convergence rate of the method is second order in space if we use piecewise linear interpolation functions to determine the approximate solution. \\
+In the context of the solution to equation ($\ref{eq:pde}$) the mesh points $\ul{x}\in \Om(t)$ move with time. In particular $h_K$ and $h$ will vary at each time step. Let time $t = n\D{t}$, so $K^n \in T_h^n$ represents the element $K$ in triangulation $T_h$ after time $t$. We rewrite ($\ref{eq:error1}$) and ($\ref{eq:error2}$) after time $t$ as:
+\begin{equation}
+\label{eq:error3_1}
+\|\ul{v}^n-\ul{v_h}^n\|_{L^2(K^n)} \leq C{h_K^n}^2|\ul{v}^n|_{H^2(K^n)},
+\end{equation}
+\begin{equation}
+\label{eq:error4_1}
+|\ul{v}^n-\ul{v_h}^n|_{H_1(K^n)} \leq D{h_K^n}^2|\ul{v}^n|_{H^2(K^n)},
+\end{equation}
+where $C, D \in \mathbb{R}$ are constants and $\rho_K^n$ is incorporated into $D$.
+\section{Error estimate in movement of mesh points}
+Consider $\ul{x}(t) \in K$, where $\ul{x} = (r(t),z(t))$, using a Taylor Series expansion, after time $\D{t}$:
+\begin{equation}
+\label{eq:pos1}
+\ul{x}(t+\D{t}) = \ul{x}(t) + \D{t}\dot{\ul{x}}(t) +( \D{t}^2/2)\ddot{\ul{x}}(\xi),
+\end{equation}
+where $\xi \in (t, t+\D{t})$.\\
+For the discrete numerical model, $\ul{x}_h \in \Omega_h(t)$, after time $t + \D{t}$ and adopting a superscript notation to represent the time step $n$, we use a linear approximation to determine $\ul{x}_h^{n+1}$:
+\begin{equation}
+\label{eq:pos2}
+\ul{x}_h^{n+1} = \ul{x}_h^n + \D(t)\dot{\ul{x}}_h(t).
+\end{equation}
+Writing $\ul{x}(t+\D{t})$ as $\ul{x}^{n+1}$ and subtracting ($\ref{eq:pos2}$) from ($\ref{eq:pos1}$) and defining the error in the approximation as $\ul{ex}^n = \ul{ex}^n - \ul{ex}_h^n$,
+\begin{equation}
+\label{eq:err1}
+\ul{ex}^{n+1} = \ul{ex}^n + \D{t}(\dot{\ul{x}}^n-\dot{\ul{x}}_h^n) + ( \D{t}^2/2)\ddot{\ul{x}}(\xi^n).
+\end{equation}
+Using successive time steps $0,\dots,n+1$ and writing $\ul{v}^n = \dot{\ul{x}}^n$ and $\dot{\ul{v}}^n = \ddot{\ul{x}}^n$  it is possible to derive the following relationship:
+\begin{equation}
+\label{eq:err2}
+\ul{ex}^{n} = \ul{ex}^0 + \D{t}\sum_{j=1}^{n}(\ul{v}^{j-1}-\ul{v}_h^{j-1}) + ( \D{t}^2/2)\sum_{j=1}^{n}\dot{\ul{v}}(\hat{\xi}^{j-1}),
+\end{equation}
+where $\hat{\xi}^n \in (t,t+\D{t}).$ This gives
+$$\|\ul{ex}\|_{L^{2}(K^n)} \leq \| \ul{ex}\|_{L^{2}(K^0)} + \|\D{t}\sum_{j=1}^{n}(\ul{v}^{j-1}-\ul{v}_h^{j-1})\|_{L^{2}(K^n)} + \|( \D{t}^2/2)\sum_{j=1}^{n}\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^n)}.$$
+Therefore
+$$\|\ul{ex}\|_{L^{2}(K^n)} \leq \| \ul{ex}\|_{L^{2}(K^0)} + n\D{t}\max_{1 \leq j \leq n}\|(\ul{v}^{j-1}-\ul{v}_h^{j-1})\|_{L^{2}(K^{j-1})} + ( n\D{t}^2/2)\max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^{j-1})}.$$
+Using equation $(\ref{eq:error3})$ we obtain,
+\begin{equation}
+\label{eq:err3}
+\|\ul{ex}\|_{L^{2}(K^n)} \leq \| \ul{ex}\|_{L^{2}(K^0)} + nC\D{t}\max_{1 \leq j \leq n}\left({h_K^j}^2|\ul{v}^{j-1}|_{H^2(K^{j-1})}\right)  + ( n\D{t}^2/2)\max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^{j-1})}.
+\end{equation}
+To simplify, suppose $|\ul{ex}_0| =    \|\ul{ex}\|_{L^{2}(K^0)}, \;n\D{t} \sim 1,$
+$$\max_{1\leq{j}\leq {n}}h_K^j = \hat{h},\;\max_{1\leq{j}\leq{n}}|\ul{v}^{j-1}|_{H^2(K^{j-1})} = |\hat{\ul{v}}| \text{ and }  \max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^{j-1})} =   |\hat{\dot{\ul{v}}}|                                       $$  then
+\begin{equation}
+\label{eq:err4}
+\|\ul{ex}\|_{L^{2}(K^n)} \leq{|\ul{ex}_0|} + C\hat{h}^2|\hat{\ul{v}}| + (\D{t}/2)|\hat{\dot{\ul{v}}}|.
+\end{equation}
+Simplifying further
+\begin{equation}
+\label{eq:err5}
+\|\ul{ex}\|_{L^{2}(K^n)} \leq C_0 + C_1\hat{h}^2 + C_2\D{t},
+\end{equation}
+where $C_0, C_1 \text{ and } C_2$ are constants and it is assumed that $\ul{v}$ and $\dot{\ul{v}}$ are bounded on $\Om(t)$. If there is no initial error in $\ul{x}$ then $C_0=0$.
+%%
+\section{Error estimate in mass recovery}
+Define function space $ \bigv = H^1(\Om)\equiv\{s: s, s_x, s_y \in [{L}^2(\Omega)]\}$ with inner product and norm defined below:
+$$(s,w)_{H^{1}(\Om)} = \int_{\Om}(sw+ s_xw_x + s_yw_y )d\Om\quad \forall \; s, w \in\bigv; \text{ and }$$
+$$ \|s\|_{H^1(\Om)} =\left[ \int_{\Om} (|s|^2 + |s_x|^2 +|s_y|^2 )d\Om\right]^{1/2}\; \forall \; s\in\bigv.$$
+Following the approach of reference \cite{Baines2011}, using the weak form of conservation of mass at time $t>0$:
+\begin{equation}
+\label{eq:mass1}
+\int_{\Om(t)}spd{\Om} = M^0, \; \forall \;p\in\bigv, 
+\end{equation}
+where $M^0$ is the mass at time $t=0$.
+Suppose $s_h \in\bigv_h \subset \bigv$, is the approximate solution, then
+\begin{equation}
+\label{eq:mass2}
+\int_{\Om_h(t)}s_hwd{\Om} = M_h^0, \; \forall \; w\in\bigv_h, 
+\end{equation}
+where $M_h^0$ is the mass at time $t=0$.
+If $s_h = 0 \; \forall \; \ul{x} \notin \Om_h,$ and $\Om_h(t) \subset \Om(t),$ since $w \in \bigv,$
+$$\int_{\Om_h(t)}ws_h d\Om = \int_{\Om(t) }ws_hd\Om.$$
+Therefore changing the domain in ($\ref{eq:mass2}$) to $\Om(t) $ and subtracting ($\ref{eq:mass2}$) from ($\ref{eq:mass1}$),
+\begin{equation}
+\label{eq:mass3}
+\int_{\Om(t)}(s-s_h)wd{\Om} = eM^0, \; \text{ for } w\in\bigv_h, 
+\end{equation}
+where $eM^0 = M^0 - M_h^0,$ the initial error in the mass.
+Consider
+$$\|s-s_h\|_{L^2(\Om(t))}^2 = \int_{\Om(t)}(s-s_h)(s-s_h)d\Om,$$
+using ($\ref{eq:mass3}$),
+$$\|s-s_h\|_{L^2(\Om(t))}^2 = \int_{\Om(t)}(s-s_h)(s-s_h)d\Om + \int_{\Om(t)}(s-s_h)wd{\Om} - eM^0,         $$
+so
+$$\|s-s_h\|_{L^2(\Om(t))}^2 \leq \int_{\Om(t)}(s-s_h)(s-s_h)d\Om + \int_{\Om(t)}(s-s_h)wd{\Om} + |eM^0|.$$
+Let $w = s_h - q$, where $q\in\bigv_h,$ giving,
+$$\|s-s_h\|_{L^2(\Om(t))}^2 \leq \int_{\Om(t)}(s-s_h)(s-s_h+w)d\Om + |eM^0| \leq \int_{\Om(t)}(s-s_h)(s-q)d\Om +|eM^0| .$$
+Applying the Cauchy-Schwartz inequality to the RHS,
+$$\|s-s_h\|_{L^2(\Om(t))}^2 \leq \int_{\Om(t)}(s-s_h)d\Om \int_{\Om(t)}(s-q)d\Om + |eM^0|.$$
+Applying the H{\"o}lder inequality to the RHS,
+$$\|s-s_h\|_{L^2(\Om(t))}^2 \leq (1/2)\left(\int_{\Om(t)}(s-s_h)d\Om\right)^2 + (1/2)\left(\int_{\Om(t)}(s-q)d\Om\right)^2 +|eM^0|.$$
+This gives
+$$\|s-s_h\|_{L^2(\Om(t))}^2 \leq (1/2)\|(s-s_h)\|_{L^2(\Om(t))}^2 + (1/2)\|(s-q)\|_{L^2(\Om(t))}^2  +|eM^0| \;\forall\;q\in\bigv_h,$$
+which may be simplified,
+\begin{equation}
+\label{eq:err_s}
+\|s-s_h\|_{L^2(\Om(t))}^2 \leq \|(s-q)\|_{L^2(\Om(t))}^2  + 2|eM^0|, \;\forall\;q\in\bigv_h.
+\end{equation}
+If $s\in\bigv_h$ and $q \in\bigv_h$ is chosen to be a linear interpolant of $s$ on $K\in T_h$, then using the condition from inequality ($\ref{eq:error1}$), the error bound for $s$ on any $K\in{T_h}$ is given by:
+\begin{equation}
+\label{eq:error5}
+\|s-s_h\|_{L^2(K)} \leq F\hat{h}_K^2|s|_{H^2(K)} + 2|eM_K^0|,
+\end{equation}
+where $F\in\mathbb{R},\hat{h}_K$ is the largest side of $K$, and condition ($\ref{eq:beta1}$) holds $\forall\;{K}\in{T}_h$.
+Equation ($\ref{eq:error5}$) may be written,
+\begin{equation}
+\label{eq:error6}
+\|s^n-s_h^n\|_{L^2(K^n)} \leq F(\hat{h}^n_K)^2|s^n|_{H^2(K^n)} + 2|eM_K^0|,
+\end{equation}
+to specify the error at timestep $n$.
+
+\subsection{Global error analysis}
+To determine the global error at time $t=n\D{t}$, it is necessary superimpose the following:
+\begin{itemize}
+\item the error in $\ul{v}^n$ which depends upon $(h_K^n)^2$, refer to inequality ($\ref{eq:error3}$); 
+\item the error in the position of the mesh points $\ul{x}^n\in K^n$ which depends upon $\ul{v}^n$ and is given in inequality ($\ref{eq:err3}$); and
+\item the error in the calculation of $s^n$ which depends upon $\ul{x}^n$, and is given in inequality ($\ref{eq:error6})$. 
+\end{itemize}
+Define $h_K^n$ and $\hat{h}_K^n$ as the longest sides of K, at the beginning and end of time step $n$ respectively. The relationship between 
+ $h_K^n$ and $\hat{h}_K^n$ is given by:
+ \begin{equation}
+ \label{eq:hrel}
+ \hat{h}_K^n \leq h_K^n + 2\|\ul{e}_K^n\|_{L^{2}(K^n)},
+ \end{equation}
+ with $$\|\ul{ex}^{n}\|_{L^{2}(K^n)} \leq \| \ul{ex}^0\|_{L^{2}(K^0)} + nC\D{t}\max_{1 \leq j \leq n}{h_K^j}^2|\ul{v}^{j-1}|_{H^2(K^{j-1})}  + ( n\D{t}^2/2)\max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^{j-1})}, \text{ from }  (\ref{eq:err3}).$$
+ Using ($\ref{eq:err3}$) in ($\ref{eq:error6})$:
+\begin{equation}
+\label{eq:error7}
+\|s^n-s_h^n\|_{L^2(K^n)} \leq F( h_K^n + 2\|\ul{ex}^n\|_{L^{2}(K^n)}  )^2|s|_{H^2(K^n)} + 2|eM_K^0|.
+\end{equation}
+If $P = \text{ number of elements in } T_h, \text{ and }$ $$\bar{h} = \max_{ K^n\in{T_h}, 1\leq{j}\leq{n} }h_K^j, \text{ then }$$
+\begin{align*} 
+\|s^n-s_h^n\|_{L^2(\Om_h^n)} & \leq F\sum_{K\in\ T_h}( \bar{h} + 2\|\ul{ex}^n\|_{L^{2}(K^n)}  )^2\sum_{K\in\ T_h}|s|_{H^2(K^n)} + 2\sum_{K\in\ T_h}|eM_K^0|\\ 
+& \leq F\sum_{K\in\ T_h}( \bar{h} + 2\|\ul{ex}^n\|_{L^{2}(K^n)}  )\sum_{K\in\ T_h}( h^n + 2\|\ul{ex}^n\|_{L^{2}(K^n)}  )\sum_{K\in\ T_h}|s|_{H^2(K^n)} + 2\sum_{K\in\ T_h}|eM_K^0| \\ 
+& \leq F\left(P\bar{h}+2\|\ul{ex}^n\|_{L^2(\Om^n_h)}\right)^2|s|_{H^2(\Om^n_h)} + 2|eM^0|.\\ 
+\end{align*}
+This can be simplified, if $n\D{t} \sim 1, \text{ assuming initial errors } \|\ul{ex}^0\|_{L^2(\Om^n_h)}\sim 0 \text{ and } |eM^0| \sim 0, $ 
+where $$|\hat{\ul{v}}| = \max_{1\leq{j}\leq{n}}|\ul{v}|_ {H^2(\Om_h^{j-1})}), \; |\hat{\dot{\ul{v}}}|=\max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi})\|_{L^{2}(\Om_h^{j-1})} \text { and } |\hat{s}|=\max_{1\leq{j}\leq n}|s|_{H^2(\Om^{j-1}_h)},$$
+Then
+$$\|s^n-s_h^n\|_{L^2(\Om_h^n)} \leq  F\left(P\bar{h}+2 \bar{h}^2|\hat{\ul{v}}|  + ( \D{t}/2)\ |\hat{\dot{\ul{v}}}|      \right)^2|\hat{s}|.$$
+Therefore the FEM/mass conservation method using piecewise linear approximation is expected to be second order in space, if $\D{t} \sim \bar{h}^2$, since the expression for the error in $s$ is of the form:
+\begin{equation}
+\label{eq:errest}
+ \|s^n-s_h^n\|_{L^2(\Om_h^n)} \leq C_1\bar{h}^2 + C_2\D{t}(\bar{h})+ C_3\D{t}^2 + O({\bar{h}^3}),
+ \end{equation}
+where $C_1,C_2 \text{ and } C_3$ are constants. This is subject to the assumption that the second derivatives of $s$ and $\ul{v}$ are bounded on $\Om(t)$.
+%%
+\section{Comparison with computational results}
+%\subsection{1D example}
+%Consider a 1D problem, using $\al(s) = s$ . For this example ($\ref{eq:pde}$) reduces to
+%\begin{equation}
+%\label{eq:pde1}
+%\frac{\partial{s}}{\partial{t}} = \frac{\pl}{\pl{x}}\left(s\frac{\pl{s}}{\pl{x}}\right) 
+%\end{equation}
+%with $s =s(x,t)$ and $s >0, \text{ for } x \in (0,b(t)), \;t\in(0,T]$. The initial condition is $s(x,1) = g(x)$ and the boundary condition $s(b(t),t)=0$. 
+%The exact solution for this type of problem is well known and is given in \cite{Baines2006}. For this example, take
+%$$g(x) = 6^{-1/3}(1 - {6}^{-2/3}x^{2}), \text{ with } s(x,t) =(6t)^{-1/3}\left(1 - (6t)^{-2/3}x^{2}\right).$$
+%The approximate solution $s_h$ after a computational period $t=0.1$ was compared with the exact solution $s$. The error norm $\|s-s_h\|_{L^{2}(0,b(t))}$ and order of convergence $p$ are shown in the following table. The results support the a priori estimate that the method of solution is second order in space.
+%
+%\begin{table}[]
+%\centering
+%\caption{Error Analysis 1D problem}
+%\label{Table 1}
+%\begin{tabular}{|l|l|l|l|l|l|}
+%\hline
+%					
+%J	&$\bar{h}$	&$\D{t}$	&L2 error norm	&ratio error	&p \\ \hline
+%20	&0.089529139	&0.003743682	&0.000778742	&   & \\ \hline	
+%40	&0.045865834	&0.000982132	&0.000222266	&0.285416967	&1.808856995 \\ \hline
+%80	&0.023208689	&0.000251633	&3.82349E-05	&0.172022874	&2.539327677 \\ \hline
+%\end{tabular}
+%\end{table}
+%
+
+
+\subsection{3D example }
+For reference purposes consider a 3D problem with radial symmetry, using $\al(s) = s$. Using the standard transformation from Cartesian $(x,y,z)$ to spherical polar coordinates $(r,\theta, \phi)$ and with $\frac{\pl}{\pl{\theta}},\;\frac{\pl}{\pl{\phi}}\equiv 0$, equation ($\ref{eq:pde}$) reduces to
+\begin{equation}
+\label{eq:pde1}
+\frac{\partial{s}}{\partial{t}} = (1/r^2)\frac{\pl}{\pl{r}}\left(r^2s\frac{\pl{s}}{\pl{r}}\right) 
+\end{equation}
+where r is the usual radial coordinate, $s =s(r,t)$ and $s >0, \text{ for } r \in (0,b(t)), \;t\in(0,T]$. The initial condition is $s(r,1) = g(r)$ and the boundary condition $s(b(t),t)=0$. 
+The exact solution for this type of problem is well known and is given in \cite{Baines2006}. For this example $$ s(r,t) =(t)^{-3/5}\left(1 - (1/10)(t)^{-2/5}r^{2}\right).$$
+Following the FEM/mass conservation method described in this report the approximate solution $s_h$ after a computational period $t=0.1$ with $\D{t} = 0.1(b(t^0)/(J+1))^2$ was compared with the exact solution $s$. The error norm $\|s-s_h\|_{L^{2}(0,b(t))}$ and order of convergence $p$ are shown in Table $\ref{Table 1}$. In the table $J$ is the number of internal points in the interval $(0,b(t))$, the error ratio $R = \|s-s_{h/2}\|_{L^2}/\|s-s_h\|_{L^2}$, 
+$$h = \max_{n=1}^N\left[\max_{j=1}^{J+1}{(r_{j+1}^n - r_j^n)}\right]$$ and $p = log(R)/log(1/2)$. The results show $p\sim 2$, supporting the a priori estimate given in $(\ref{eq:errest})$ that predicts the method of solution to be second order in space.
+
+\begin{table}[]
+\centering
+\caption{Error Analysis 3D diffusion with radial symmetry}
+\label{Table 1}
+\begin{tabular}{|l|l|l|l|l|l|}
+\hline
+J	&$\bar{h}$	&$\D{t}$	&L2 error norm	&ratio error R	&p \\ \hline
+20	&0.153811279	&0.002267574	&0.000973768	& &	\\ \hline
+40	&0.078764976	&0.000594884	&0.000253287	&0.260110284	&1.942804653 \\ \hline
+80	&0.039857371	&0.000152416	&6.4693E-05	&0.255413562	&1.969092961 \\ \hline
+\end{tabular}
+\end{table}
+
+%
+%\nocite{Lee2014}
+%%\nocite{Morton1}
+%\nocite{Lukyanov2012}
+\bibliography{RefLib}
+\bibliographystyle{plain}
+\newpage
+\appendix
+\begin{appendices}
+\appendixpage
+\section{Helmholtz Fundamental Theorem of Vector Analysis}
+\label{appendix:helmholtz}
+Let \underline{a} be a vector field on a bounded domain $\Omega \subseteq \mathbb{R}{^n}, \text{ with }n=2,3$, which is twice continuously differentiable, and let $S$ be the surface that encloses the domain $\Omega$. Then using \cite{Griffiths} $\underline{a}$ can be decomposed into a curl-free component and a divergence-free component:
+$$\underline{a} =-\nabla\phi+\nabla \times \underline {w},$$
+where $\phi$ and $\underline{w}$ are respectively the scalar and vector potential of $\underline{a}$.
+\subsection{Corollary 1}
+If $\nabla\cdot{\underline{a}}$ and $\nabla\times{\underline{a}}$ are given the decomposition is unique.
+\subsection{Corollary 2}
+If  $\underline{a}$ is irrotational  $\nabla\times{\underline{a}} = 0\; \implies \exists \text{ a } \phi \text{ s.t } \underline{a} = -\nabla{\phi}$.
+\subsection{Corollary 3}
+If  $\underline{a}$ is solenoidal  $\nabla\cdot{\underline{a}} = 0\; \implies \exists \; \underline{w} \text{ s.t } \underline{a} = -\nabla\times\underline{w}$.
+\subsection{Application}
+To apply this theorem to our specific problem, we want to solve equation ($\ref{eq:vel0}$) 
+$$\nabla\cdot\left(\al(s)\nabla{s} + s\underline{v}\right)=0,$$ 
+for a unique $\ul{v}$. However it can be seen that if $\ul{v} = (\al{(s)}/s)\nabla{s}$ is a solution then so is $\ul{v} = (\al{(s)}/s)\nabla{s} + (1/s)\nabla\times{\ul{w}}$, for any $\ul{w}$.
+If $\ul{v}$ is irrotational, as stated in our problem, using Helmholtz Corollary 2 above $ \exists \text{ a } \phi \text{ s.t } \underline{v} = \nabla{\phi}.$
+This means equation ($\ref{eq:vel0}$) can be written 
+\begin{equation}
+\label{eq:Poisson1}
+\nabla\cdot(s\underline{\nabla}{\phi}) = - \nabla\cdot(\al(s)\nabla{s}).
+\end{equation}
+This is a Poisson equation for $\phi$, which by the Uniqueness Theorem, refer to Appendix $\ref{appendix:poisson}$, states that if $s>0$ and a potential $\phi$ satisfies the equation and boundary
+ conditions, then it is a unique solution.
+Hence if $\phi$ is unique then so is $\ul{v}$, which means the solution to equation ($\ref{eq:vel0}$) is $\ul{v} = (\al{(s)}/s)\nabla{s}$.
+
+\section{Uniqueness Theorem Poisson Equation}
+\label{appendix:poisson}
+Suppose we want to solve the following equation for $\phi$:
+\begin{equation}
+\label{eq:poisson2}
+\nabla\cdot(s\nabla{\phi}) = -f(s),
+\end{equation}
+where $s$ is specified on a domain $\Omega$ with boundary $\delta{\Omega}$. This equation is subject to the following boundary conditions (BC):
+either (i) $\phi$ is specified on $\delta{\Omega}$, or (ii) $\ul{v} = -\nabla{\phi}$ is specified on $\delta{\Omega}$.
+There are no restrictions on the boundary which could be at $\infty$.\\
+Suppose there are 2 solutions to ($\ref{eq:poisson2}$), $\phi_1$ and $\phi_2.$
+If $\phi = \phi_1-\phi_2$, then from ($\ref{eq:poisson2}$)
+then
+$$\nabla\cdot(s\nabla(\phi_1)-s\nabla(\phi_2)) = 0,$$
+giving $$\nabla\cdot(s\nabla(\phi_1-\phi_2)) = 0,$$
+$$\nabla\cdot(s\nabla(\phi)) = 0.$$
+This means we can write 
+$$\phi\nabla\cdot(s\nabla{\phi}) = 0.$$
+Using the identity $\nabla\cdot(c\ul{A}) = \nabla{c}\cdot\ul{A} + c\nabla\cdot{\ul{A}}$ with $c = \phi$ and $\ul{A} = s\nabla{\phi}$ gives
+$$ \nabla\cdot( \phi{s}\nabla\phi ) - \nabla\phi\cdot{s}\nabla\phi = 0,$$
+which implies
+$$ \nabla\cdot( \phi{s}\nabla\phi ) - s(\nabla\phi)^2 = 0.$$
+Integrating this equation over $\Omega$ gives
+$$ \int_{\Omega}(\nabla\cdot( \phi{s}\nabla\phi ) - s(\nabla\phi)^2)d\Omega=0.$$ 
+Applying the divergence theorem to the first term:
+$$ \oint_{\pl{\Omega}}\phi{s}\nabla{\phi}\cdot\ul{\hat{n}}dS - \int_{\Omega}s(\nabla\phi)^2d\Omega=0.$$
+Now for either BC (i) or (ii) the boundary integral is zero. Hence
+$$ \int_{\Omega}s(\nabla\phi)^2d\Omega=0,$$ 
+since $s>0$ and $(\nabla\phi)^2\geq 0$, this $\implies \nabla{\phi} = 0,$ and so $\phi_1 = \phi_2 + k$ with $k = 0$ for BC (i). Hence equation ($\ref{eq:poisson2}$) has a unique solution. 
+\end{appendices}
+
+
+%-------------end of document body----------
+\end{document}
+
+
+
+
+
