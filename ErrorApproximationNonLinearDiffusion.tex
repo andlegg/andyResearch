@@ -13,7 +13,7 @@
 \usepackage{pdfpages}
 %\usepackage[table,xcdraw]%{xcolor}
 \usepackage{mathtools, nccmath}
-%\usepackage{refcheck}
+\usepackage{refcheck}
 \usepackage{subfigure}
 \usepackage{titlesec}
 \usepackage{appendix}
@@ -181,7 +181,7 @@ Therefore the global error bound on the first derivatives is
 \label{eq:error4}
 |\ul{v}-\ul{v_h}|_{H_1(\Om)} \leq C(h/\beta)|\ul{v}|_{H^2(\Om)},
 \end{equation}
-In summary both the continous and discrete versions of the weak velocity equation have unique solutions. The a priori error bounds show that the convergence rate of the method is second order in space if we use piecewise linear interpolation functions to determine the approximate solution. \\
+In summary both the continuous and discrete versions of the weak velocity equation have unique solutions. The a priori error bounds show that the convergence rate of the method is second order in space if we use piecewise linear interpolation functions to determine the approximate solution. \\
 In the context of the solution to equation ($\ref{eq:pde}$) the mesh points $\ul{x}\in \Om(t)$ move with time. In particular $h_K$ and $h$ will vary at each time step. Let time $t = n\D{t}$, so $K^n \in T_h^n$ represents the element $K$ in triangulation $T_h$ after time $t$. We rewrite ($\ref{eq:error1}$) and ($\ref{eq:error2}$) after time $t$ as:
 \begin{equation}
 \label{eq:error3_1}
@@ -202,19 +202,32 @@ where $\xi \in (t, t+\D{t})$.\\
 For the discrete numerical model, $\ul{x}_h \in \Omega_h(t)$, after time $t + \D{t}$ and adopting a superscript notation to represent the time step $n$, we use a linear approximation to determine $\ul{x}_h^{n+1}$:
 \begin{equation}
 \label{eq:pos2}
-\ul{x}_h^{n+1} = \ul{x}_h^n + \D(t)\dot{\ul{x}}_h(t).
+\ul{x}_h^{n+1} = \ul{x}_h^n + \D{t}\dot{\ul{x}}_h(t).
 \end{equation}
-Writing $\ul{x}(t+\D{t})$ as $\ul{x}^{n+1}$ and subtracting ($\ref{eq:pos2}$) from ($\ref{eq:pos1}$) and defining the error in the approximation as $\ul{ex}^n = \ul{ex}^n - \ul{ex}_h^n$,
+Defining $\ul{x}(t+\D{t})$ as $\ul{x}^{n+1}$ and subtracting ($\ref{eq:pos2}$) from ($\ref{eq:pos1}$) and defining the error in the approximation as $\ul{ex}^n = \ul{ex}^n - \ul{ex}_h^n$,
 \begin{equation}
 \label{eq:err1}
 \ul{ex}^{n+1} = \ul{ex}^n + \D{t}(\dot{\ul{x}}^n-\dot{\ul{x}}_h^n) + ( \D{t}^2/2)\ddot{\ul{x}}(\xi^n).
 \end{equation}
-Using successive time steps $0,\dots,n+1$ and writing $\ul{v}^n = \dot{\ul{x}}^n$ and $\dot{\ul{v}}^n = \ddot{\ul{x}}^n$  it is possible to derive the following relationship:
+Since $\ul{v}^n = \dot{\ul{x}}^n$ and $\dot{\ul{v}}^n = \ddot{\ul{x}}^n$ ($\ref{eq:err1}$) can be written,
+\begin{equation}
+\label{eq:err2}
+\ul{ex}^{n+1} = \ul{ex}^n + \D{t}({\ul{v}}^n-\dot{\ul{v}}_h^n) + ( \D{t}^2/2)\dot{\ul{v}{x}}(\xi^n).
+\end{equation}
+Using successive time steps $j = 0,\dots,n+1$, 
+\begin{equation*}
+     \begin{aligned}
+     \ul{ex}^{1}  & = \ul{ex}^0 + \D{t}({\ul{v}}^0-\dot{\ul{v}}_h^0) + ( \D{t}^2/2)\dot{\ul{v}}(\xi^0) \\
+     \ul{ex}^{2} & = \ul{ex}^1 + \D{t}({\ul{v}}^1-\dot{\ul{v}}_h^1) + ( \D{t}^2/2)\dot{\ul{v}}(\xi^1)\\
+     &= \ul{ex}^0 + \D{t} \sum_{j=1}^2({\ul{v}}^{j-1}-\dot{\ul{v}}_h^{j-1}) + \sum_{j=1}^2( \D{t}^2/2)\dot{\ul{v}}(\xi^{j-1}),
+      \end{aligned}
+\end{equation*}
+by increasing ${j = 3,\dots,n}$ it is possible to derive the following relationship:
 \begin{equation}
 \label{eq:err2}
 \ul{ex}^{n} = \ul{ex}^0 + \D{t}\sum_{j=1}^{n}(\ul{v}^{j-1}-\ul{v}_h^{j-1}) + ( \D{t}^2/2)\sum_{j=1}^{n}\dot{\ul{v}}(\hat{\xi}^{j-1}),
 \end{equation}
-where $\hat{\xi}^n \in (t,t+\D{t}).$ This gives
+where $\hat{\xi}^n \in (t,t+\D{t}).$ Taking the $L^2$ norm of both sides of equation ($\ref{eq:err2}$) gives
 $$\|\ul{ex}\|_{L^{2}(K^n)} \leq \| \ul{ex}\|_{L^{2}(K^0)} + \|\D{t}\sum_{j=1}^{n}(\ul{v}^{j-1}-\ul{v}_h^{j-1})\|_{L^{2}(K^n)} + \|( \D{t}^2/2)\sum_{j=1}^{n}\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^n)}.$$
 Therefore
 $$\|\ul{ex}\|_{L^{2}(K^n)} \leq \| \ul{ex}\|_{L^{2}(K^0)} + n\D{t}\max_{1 \leq j \leq n}\|(\ul{v}^{j-1}-\ul{v}_h^{j-1})\|_{L^{2}(K^{j-1})} + ( n\D{t}^2/2)\max_{1\leq j \leq n}\|\dot{\ul{v}}(\hat{\xi}^{j-1})\|_{L^{2}(K^{j-1})}.$$
@@ -356,15 +369,27 @@ where $C_1,C_2 \text{ and } C_3$ are constants. This is subject to the assumptio
 %
 
 
-\subsection{3D example }
-For reference purposes consider a 3D problem with radial symmetry, using $\al(s) = s$. Using the standard transformation from Cartesian $(x,y,z)$ to spherical polar coordinates $(r,\theta, \phi)$ and with $\frac{\pl}{\pl{\theta}},\;\frac{\pl}{\pl{\phi}}\equiv 0$, equation ($\ref{eq:pde}$) reduces to
+\subsection{2D example }
+For reference purposes consider a 2-D problem, using $\al(s) = s$, in Cartesian coordinates equation ($\ref{eq:pde}$) reduces to
 \begin{equation}
 \label{eq:pde1}
-\frac{\partial{s}}{\partial{t}} = (1/r^2)\frac{\pl}{\pl{r}}\left(r^2s\frac{\pl{s}}{\pl{r}}\right) 
+\frac{\partial{s}}{\partial{t}} = \nabla\cdot\left(s\nabla{s}\right) 
 \end{equation}
-where r is the usual radial coordinate, $s =s(r,t)$ and $s >0, \text{ for } r \in (0,b(t)), \;t\in(0,T]$. The initial condition is $s(r,1) = g(r)$ and the boundary condition $s(b(t),t)=0$. 
-The exact solution for this type of problem is well known and is given in \cite{Baines2006}. For this example $$ s(r,t) =(t)^{-3/5}\left(1 - (1/10)(t)^{-2/5}r^{2}\right).$$
-Following the FEM/mass conservation method described in this report the approximate solution $s_h$ after a computational period $t=0.1$ with $\D{t} = 0.1(b(t^0)/(J+1))^2$ was compared with the exact solution $s$. The error norm $\|s-s_h\|_{L^{2}(0,b(t))}$ and order of convergence $p$ are shown in Table $\ref{Table 1}$. In the table $J$ is the number of internal points in the interval $(0,b(t))$, the error ratio $R = \|s-s_{h/2}\|_{L^2}/\|s-s_h\|_{L^2}$, 
+The exact solution for this type of problem with radial symmetry is well known and is given in \cite{Baines2006}. For this example take $$ s(x,y,t) =(8t)^{-1/2}\left(1 - (8t)^{-1/2}(x^{2}+y^2)\right),$$
+$s = s(x,y,t) \in\Om (t)$ and $s > 0, \text{ for }  \in (0,b(t)), \;t\in(0,T]$. The initial condition is given by $s(x,y,1) $ and the boundary condition $s|_{\pl{\Om} (t) } =0$. Given the symmetry of the problem the solution is determined in the positive quadrant.\\
+To follow the FEM/mass conservation method described in this report the domain $\Om(t)$ is divided into a finite number of triangular elements $T_h$ with $\ul{v} \text{ and } s$ approximated over each $K \in T_h$ by the usual piecewise linear basis functions. An example of $T_h^0$ is shown in fig 1. From equation ($\ref{eq:errest}$) it can be seen that for second order convergence $\D{t} \sim \bar{h}^2$ so in the numerical computation $\D t = 0.5\bar{h}^2$ has been used. As can be seen from fig 1 the mesh g
+
+
+<example initial triangulation>
+<example fina
+
+
+
+
+
+
+
+the approximate solution $s_h$ after a computational period $t=0.1$ with $\D{t} = 0.1(b(t^0)/(J+1))^2$ was compared with the exact solution $s$. The error norm $\|s-s_h\|_{L^{2}(0,b(t))}$ and order of convergence $p$ are shown in Table $\ref{Table 1}$. In the table $J$ is the number of internal points in the interval $(0,b(t))$, the error ratio $R = \|s-s_{h/2}\|_{L^2}/\|s-s_h\|_{L^2}$, 
 $$h = \max_{n=1}^N\left[\max_{j=1}^{J+1}{(r_{j+1}^n - r_j^n)}\right]$$ and $p = log(R)/log(1/2)$. The results show $p\sim 2$, supporting the a priori estimate given in $(\ref{eq:errest})$ that predicts the method of solution to be second order in space.
 
 \begin{table}[]
