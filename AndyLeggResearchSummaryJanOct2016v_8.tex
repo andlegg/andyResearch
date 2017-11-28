@@ -1,0 +1,81 @@
+\documentclass[11pt]{article}
+\usepackage[bottom=8em]{geometry} % reduces size of footer
+
+%-------------preamble begins-------------------
+\usepackage{amsfonts}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{fancyhdr} 
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot{\thepage}
+\renewcommand*\familydefault{\sfdefault}
+\sffamily
+\newcommand{\rd}{\mathrm{d}}
+\title{Research Summary period Jan - Dec 2016}
+\author{Andy Legg}
+\date{15 Dec 2016}
+
+
+%-------------preamble ends---------------------
+\begin{document}
+%-------------start of document body----------
+\maketitle
+\section{Introduction}
+I started in Jan 2016 working under the supervision of Professor Mike Baines and Dr Tristan Pryer. As it had been a while since I studied or used any of the mathematics from the MSc course in the Numerical Solution of Differential Equations much of the period Jan-Oct 2016 was spent familiarising myself with material from the following general subject areas. 
+\begin{itemize}
+ \item Finite Difference Methods (FD) and Finite Element Methods (FE) in solution of Partial Differential Equations (PDE). 
+ \item Programming in MATLAB
+ \item PDE Theory
+\end{itemize}
+\section{Work Summary}
+\subsection{Finite Difference Solutions}
+During the period Jan - Apr 2016 I worked on the numerical solution of the 1D Porous Medium Equation (PME) $u_t = (u^mu_x)_x $ for cases $m = 0,1$ and $2$.
+The approach for cases $m = 1$ and $2$ used a mass conservation method on a moving mesh with the domain dependent upon time. A MATLAB program was written and adapted to use various numerical methods for solving the discretized equations, including  implicit Euler, explicit Euler and Crank-Nicholson.
+The explicit Euler method in cases $m = 0$ and $1$ was found to be stable for $ \rd{t}\approx 0.5{\rd{x^2}} $ whilst there were no stability conditions required for implicit Euler or Crank-Nicolson methods.\
+In the case $m = 1 $ the discretized equation at timestep $n$ was linearized by taking the value of ${u|}^{(n-1)\rd{t}}$ i.e. from the preceding timestep for the diffusion coefficient. The analytic solution for the PME case $m = 1$ was evaluated using similarity transformations $p = u/t^a $ and $q = x/t^b$\\
+The condition on parameters a and b for scale invariance and the time independence of the solution together with a mass conservation condition gave $a = -1/3 $ and $ b = 1/3$ which in turn led to the exact solution $ u(x,t)=(1/6{t^{1/3}})(1-{x^2}/{t^{2/3}})_{+}  $ where the $ + $ suffix means that only positive values of $ u $ exist, $ u \geq 0\,\forall\  t> 0 $
+This result was used to verify the accuracy of numerical solution $u_h$.\\
+The  solution $u_h$ was calculated on points within the computational domain, which was divided into $N+1$ intervals where $h = d/(N+1) $, using the implicit Euler method the order of convergence p where $||u-uh|| \leq Ch^p\ C\in \mathbb{R} $ was found to be $ p\approx 1$ as $N $ was successively doubled from $4$ to $128$.\\
+The same approach was used to verify the numerical solution of 2D radial case PME 
+$ u_t = (1/r){(uru_r )}_r  $ and the numerical solution to 2D Cartesian PME 
+$ u_t = \nabla\cdot{u}\nabla{u} $ on a fixed domain. In the 2D Cartesian equation the exact solution to the 2D radial case was used to verify the numerical results.
+A proof was also presented to the Supervisors for the Maximum Principle for nonlinear diffusion equations in 1D and 2D Cartesian coordinates: $ u_t = (a(u)u_x)_x $  and $ u_t = \nabla\cdot{a(u)}\nabla{u} $ 
+\subsection{Finite Element Solutions}
+I had not used the FEM before so after studying the underlying theory I began by writing a MATLAB program that determined the numerical solution to the 1D PME for cases $m = 0 $ and $1$. Using a mass conservation approach with linear basis functions the computed results were compared to the exact solution as in the FD section above. Computing the error norm $||u-u_h||_{L2} $ for increasing the number of grid points, showed order of convergence $ p \approx 2$.\\
+Time was spent developing numerical solutions for the 2D Cartesian PME cases $ u_t = \nabla\cdot{u^m}\nabla{u}$ for cases $ m = 0 $ and $1$. This was on a square grid subdivided into triangular elements and utilised the standard linear basis functions for such elements. 
+In discrete form this involved solving a system of $(N+2)^2$ equations $ M\underline{u_t}=K\underline{u} $, where $M$ is a mass matrix and $K$ a stiffness matrix. The resulting linear equations were solved using an implicit method. \\
+To gain some confidence in the 2D FEM MATLAB program the numerical results were compared with the known analytic solution for a heat source at the origin. The initial condition for the numerical calculation was taken to be the exact solution $u(x,y,1)$ for points $(x,y)$ in the solution domain. 
+Advancing the solution in time required the imposition of Dirichlet boundary conditions $u_B$ at the boundary points for every timestep. These boundary values were computed using the formula for the exact solution. At the end of the computational period the computed results at internal points were compared to the exact solution. \\
+For the case $m \leq 1$ there is a moving boundary, so the test domain was chosen to be within the boundary. At each time step Dirichlet BC were imposed on the external boundary, whilst Neumann conditions were applied along the axes. Computed results were compared with the known analytic solution.\\
+In both cases $ m = 0$ and $1$, the error norm $||u-u_h||_{L2} $ was calculated for increasing values of $N$. It was shown that there was second order convergence in the linear case and first order in the nonlinear case. Additionally the solution to  $ u_t = (1/r){(uru_r )}_r    $ was computed on a fixed grid. 
+\subsection{Main conclusions}
+There are primarily two issues to address, that of moving a boundary and also how to deal with the nonlinearity.\\
+For moving boundaries associated with PME $ u_t = \nabla\cdot{u^m}\nabla{u} $ cases $ m =1, 2 $ when using a fixed grid, setting initial conditions can be problematic. For example in setting the initial conditions in the validation program it was necessary to ensure $ u_h \geq 0 $, so the computational domain was fixed within the moving boundary. If not and $u_h $ was taken to be zero on domain points outside the boundary, small negative values of $ u_h $ were observed near the moving boundary. These problems were avoided using the mass conservation approach as the domain is always inside the moving boundary. 
+\subsection{Other}
+\begin{itemize}
+ \item Following Mathematics of Planet Earth PDEs Autumn 2016 lecture course run by Dr Tristan Pryer 
+ \item Aim to attend a conference next year http://www.naconf.org.uk
+ \item Followed self learn course in use of Latex
+\end{itemize}
+\subsection{Proposed Next steps}
+\begin{itemize}
+\item Complete work on the 2D numerical solution of the PME case $m = 1$
+\item Solve same problem using mass conservation method
+\item Work on 2D FEM Fast Diffusion case $m \approx -3/2$ using same methodology as for $m = 1$ and compare computed results with any available laboratory test results
+\item Work on a priori and a posteriori error analysis for FEM, point 3 above. 
+\item Longer term research fast diffusion problem with possible applications to modelling spread of contaminants/pollutants in 1 and 2D
+\end{itemize}
+\subsection{Key references}
+\begin{enumerate}
+\item Velocity-Based Moving Mesh Methods for Nonlinear Partial Differential Equations
+M. J. Baines, M. E. Hubbard and P. K. Jimack. CiCp 2011 Volume 3 pages 509-576
+\item A moving mesh finite element algorithm for the adaptive solution of time-dependent partial differential equations with moving boundaries M. J. Baines, M. E. Hubbard and P. K. Jimack. App Num Math 2005 Volume 54, Issues 3-4, August 2005, Pages 450-469
+\item Moving mesh finite difference schemes for the porous medium equation G. Scherer and M. J. Baines 2012 Departmental research report 1/2012, Dept of Maths and Stats, University of Reading
+\item A finite difference moving mesh method based on conservation for moving boundary problems T. E. Lee, M. J. Baines, S. Langdon 2015 J. Com Phy Vol 288, Pages 1-17
+\item Superfast nonlinear diffusion: capillary transport in particulate porous media. Lukyanov, A.V., Sushchikh, M.M., Baines, M.J. and Theofanous, T.G. 2012 PRL109.214501
+\item Similarity in Differential Equations University of Reading Dep of M\&S MMath Thesis Nicole Sarahs 2015
+\item Fast Diffusion in Porous Media University of Reading Dep of M\&S MSc Thesis Justin Prince 2011
+\end{enumerate}
+%-------------end of document body----------
+\end{document}

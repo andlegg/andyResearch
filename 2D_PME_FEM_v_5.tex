@@ -1,0 +1,545 @@
+\documentclass[11pt]{article}
+\usepackage{cite}
+%-------------preamble begins-------------------
+\usepackage[textwidth=6.2in,textheight=9.5in]{geometry}
+\usepackage{amsfonts}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{fancyhdr} 
+\usepackage{array,booktabs}
+\usepackage{csvsimple}
+%\usepackage{pdfpages}
+%\usepackage{mathtools, nccmath}
+%\usepackage{refcheck}
+%\usepackage{subfigure}
+\usepackage{titlesec}
+%\usepackage{appendix}
+\usepackage{enumerate}
+\setcounter{secnumdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\newcommand{\pl}{\partial}
+\newcommand{\D}{\Delta}
+\newcommand{\ul}{\underline}
+\newcommand{\bigv}{\mathbb{V}}
+\newcommand{\Om}{\Omega}
+\fancyfoot{\thepage}
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand*\familydefault{\sfdefault}
+\sffamily
+\newcommand{\rd}{\mathrm{d}}
+\newcommand{\al}{\mathrm{\alpha}}
+\title{Modelling 2-D Diffusion in a Porous Medium \\ - version 2}
+\author{Andy Legg}
+\date{Nov 2017}
+%
+%-------------preamble ends---------------------
+\begin{document}
+%-------------start of document body----------
+\maketitle
+\section{Summary}
+%A moving mesh finite element algorithm which uses local mass conservation, following the approach of \cite{Baines2011}, is used to determine solutions of the non-linear diffusion equation. 
+%%It is a physical property of the governing PDE that mass is conserved within a moving domain $\Om(t) \subset \mathsbb{R}$.
+%\begin{equation}
+%\label{eq:pde0}
+%\frac{\partial{s}}{\partial{t}} = \nabla\cdot\left(\al(s)\nabla{s}\right),
+%\end{equation}
+%where $\ul{x} \in \Om(t)\subset\mathbb{R}, s= s(\ul{x},t)$ is a quantity representing saturation level or density of some contaminant and $\al(s)$ the diffusion coefficient. 
+%with $s = s_f$ on boundary, where $s$ is a quantity representing saturation level or density of some contaminant and $\al(s)$ the diffusion coefficient. If $\al{(s)}=s^m, \; m\in \mathbb{R}$ and $m > 0$, with $s_f = 0$ on boundary, equation ($\ref{eq:pde0}$) reduces to the Porous Medium Equation (PME)
+%\begin{equation}
+%\label{eq:pme1} 
+%\frac{\partial{s}}{\partial{t}} = \nabla\cdot\left(s^m\nabla{s}\right),
+%\end{equation}
+%A physical property of which is a moving boundary. 
+%The algorithm is applied to 2 examples, simulating diffusion of a contaminant applied in a thin film on to a porous medium. Firstly to the case $m=1$ representing flow through a porous medium and secondly, to the case $m=-3/2$, representing Super Fast Diffusion (SFD). SFD is a physical phenonmenon that can occur when the background saturation level of the porous medium is low, for example when a liquid is poured onto dry sand. Starting with a 3-D model, if it is assumed that there is radial symmetry in one spatial coordinate the computation is reduced to 2-D.
+%The method follows \cite{Baines2011} where for non linear diffusion the moving mesh equations are based upon conserving the local mass within each finite element. An a priori error estimate is determined for the FEM used to calculate the velocity. Using the approach outlined in \cite{Johnson2012} the method was found to be second order.
+
+\section{Introduction}
+Consider the problem to determine $s(\underline{x},t)$ where
+\begin{equation}
+\label{eq:pde}
+\frac{\partial{s}}{\partial{t}} = \nabla\cdot\left(\al(s)\nabla{s}\right) 
+\end{equation}
+with $ s(\underline{x},t)>0, \text{ for } \underline{x} \in \Omega{(t)}, \;t\in(0,T]$. The initial condition is $s(\ul{x},0) = g(\ul{x})$, with boundary conditions $s=s_f$ on $\delta{\Omega}$.  Let $s \in H^{1}(\Omega)$ and assume the flow within the porous medium is irrotational, so that $\nabla\times\underline{v} = \underline{0}$ where $\underline{v}(\ul{x},t)$ is the internal flow velocity. \\
+\section{Mass Conservation}
+to be added - continuous case and discrete case
+\section{Velocity Equation}
+An equation for the flow velocity may be derived using equation ($\ref{eq:pde}$) and the mass conservation equation:
+\begin{equation}
+\label{eq:masscon}
+\frac{\pl{s} }{\pl{t} } + \nabla.(s\underline{v}) =0.
+\end{equation}
+Subtracting equation $(\ref{eq:masscon})$ from $(\ref{eq:pde})$ gives:
+\begin{equation}
+\label{eq:vel0}
+\nabla\cdot\left(\al(s)\nabla{s}\right) = - \nabla\cdot(s\underline{v}),
+\end{equation}
+from which it can be shown, refer to Appendix $\ref{appendix:helmholtz}$, that
+\begin{equation}
+\label{eq:vel}
+\underline{v} =  -\left(\al(s)/s\right)\nabla{s}.
+\end{equation}
+In general terms the discretization described in \cite{Baines2011} divides the domain $\Om(t)$ into elements and uses equation ($\ref{eq:vel}$) to determine $\ul{v}$ at the mesh points from known values of $s$. Revised mesh point positions are calculated after a time period $\D{t}$. Local mass conservation is used to determine the revised values of $s$ and the process is repeated for an appropriate number of time steps. Finding $\ul{v}$ directly using linear approximations to $s$ over the elements would give discontinuities in $\ul{v}$ at the mesh points. This problem is addressed by solving a weak form of equation $(\ref{eq:vel})$ using finite elements.
+\section{A Weak Form of the Velocity Equation}
+\subsection{Continuous Problem}
+In 3-D Cartesian coordinates let $\ul{v} = (v_1(x,y,z),v_2(x,y,z),v_3(x,y,z))$. Let function space $ \bigv = H^1(\Om)\equiv\{\ul{v}: \ul{v}, \ul{v}_x, \ul{v}_y, \ul{v}_z  \in [{L}^2(\Omega)]^3\}$ with inner product and norm defined below:
+$$(\ul{v},\ul{w})_{H^{1}(\Om)} = \int_{\Om}(\ul{v}\cdot\ul{w}+ \ul{v}_x\cdot\ul{w}_x + \ul{v}_y\cdot\ul{w}_y + \ul{v}_z\cdot\ul{w}_z  )d\Om\quad \forall \;\ul{v},\; \ul{w} \in\bigv$$
+$$ \|\ul{v}\|_{H^1(\Om)} =\left[ \int_{\Om} (|\ul{v}|^2 + |\ul{v}_x|^2 +|\ul{v}_y|^2 + |\ul{v}_z|^2)d\Om\right]^{1/2}\; \forall \;\ul{v}\in\bigv$$
+To solve the weak form of equation $\ref{eq:vel}$ we need to find $\ul{v} \in \bigv \ni$
+\begin{equation}
+\label{eq:weakvel}
+\int_{\Omega(t)} \ul{v}\cdot\ul{w}d{\Omega} =  -\int_{\Omega(t)}(\al(s)/s)\nabla{s}\cdot\ul{w}d{\Omega}
+\end{equation}
+$\forall \ul{w} \in \bigv$.
+Define bilinear form $$a(\ul{v},\ul{w}) = \int_{\Om}\ul{v}\cdot\ul{w}d{\Om}$$ and linear form $$L(\ul{w}) =  \int_{\Om}\ul{f}\cdot\ul{w}d\Om, \text{ with } \ul{f} = -(\al(s)/s)\nabla{s}.$$
+Hence equation ($\ref{eq:weakvel}$) may be written:
+\begin{equation}
+\label{eq:weakvel3a}
+a(\ul{v},\ul{w}) = L(\ul{w}).
+\end{equation}
+Next we apply the Lax Milgram theorem to show that equation ($\ref{eq:weakvel3a}$) has a unique solution. This requires the following conditions to be satisfied:
+\begin{enumerate}[(i)]
+\item $a(\cdot,\cdot)$ is symmetric;
+\item $a(\cdot,\cdot)$ is continuous, i.e. $\exists\; \gamma >0 \ni |a(\ul{v},\ul{w})| \leq \gamma\|\ul{v}\|_{\bigv}\|\ul{w}\|_{\bigv} \quad \forall \ul{v},\;\ul{w} \in \bigv$;
+\item $a(\cdot,\cdot)$ is V-elliptic, i.e. $\exists\; \zeta > 0 \; \ni \; a(\ul{v},\ul{v}) \geq \zeta\|  \ul{v}   \|_{\bigv}^2\quad \forall \; \ul{v}\in\bigv$; and 
+\item $L$ is continuous, i.e. $ \exists\; \Lambda > 0 \; \ni \; |L(\ul{v})| \leq \Lambda\|\ul{v}   \|_{\bigv}\quad \forall\;\ul{v} \in \bigv.$
+\end{enumerate}
+Since $a(\ul{v},\ul{w}) = \int_{\Om}\ul{v}\cdot\ul{w}d{\Om}= \int_{\Om}\ul{w}\cdot\ul{v}d{\Om}= a(\ul{w},\ul{v})$ it follows that $a(\cdot,\cdot)$ is symmetric.\\
+The Cauchy-Schwarz inequality states that for all vectors $\ul{v}$ and $\ul{w}$ of an inner product space $\bigv$, 
+$$|(\ul{v},\ul{w})_{\bigv}|^2 \leq (\ul{v},\ul{v})_{\bigv}\cdot(\ul{w},\ul{w})_{\bigv}= \|  \ul{v}   \|_{\bigv}^2\|  \ul{w}   \|_{\bigv}^2    .$$
+Hence $$|(\ul{v},\ul{w})_{\bigv}| \leq \|  \ul{v}   \|_{\bigv}\|  \ul{w}   \|_{\bigv}    .$$
+Therefore with reference to condition (ii) and choosing $\zeta = 1, a(\cdot,\cdot)$ is continuous.\\   
+Since $a(\ul{v},\ul{v})_{\bigv}= \int_{\Om}|\ul{v}|^2d\Om = (\ul{v},\ul{v})_{\bigv} =     \|  \ul{v}   \|_{\bigv}^2      $ and taking $\zeta = 1$ condition (iii) is satisfied and so $a(\cdot,\cdot)$ is V-elliptic.
+Consider $|L(\ul{v})| =   \int_{\Om}\ul{f}\cdot\ul{v}d\Om = (\ul{f},\ul{v}) \leq \|\ul{f}\|_{\bigv}\|\ul{v}\|_{\bigv},$ by application of the Cauchy-Schwartz inequality. Recalling that $\ul{f} = -(\al(s)/s)\nabla{s}$, if in condition (iv) we choose $\Lambda = \|\ul{f}\|_{\bigv}$, $L$ is continuous providing $f\ne0$.
+Hence there is a unique solution to equation $\ref{eq:weakvel3a}$.
+\subsection{Discrete Problem}
+Let $\bigv_h$ be an $M$ (finite) dimensional subspace of $\bigv$. Let $\{\ul{\phi_1},\dots,\ul{\phi_M}\}$ be a basis for $\bigv_h$. Therefore $\ul{\phi_i}\in \bigv_h \text{ for } i = 1,\dots,M$ and any $\ul{w}\in \bigv_h$ has the representation 
+\begin{equation}
+\label{eq:lineq}
+\ul{w} = \sum_{j=1}^M\eta_j\ul{ \phi_j} \text{ where }\eta_j \in \mathbb{R}.
+\end{equation}
+In a discrete representation of equation (\ref{eq:weakvel3a}) we want to find $$\ul{v_h}\in \bigv_h \ni a(\ul{v_h},\ul{w}) = L(\ul{w}) \quad \forall \; \ul{w} \in \bigv_h.$$
+Since $\ul{\phi_i} \in \bigv_h$
+\begin{equation}
+\label{eq:discrete1}
+a(\ul{v_h},\ul{\phi_i}) = L(\phi_i) \quad \text{ for } i = 1,\dots,M.
+\end{equation}
+Let $$\ul{v_h} = \sum_{j=1}^M\xi_j\ul{ \phi_j}\;\text{ where } \ul{\xi} =  \{\ul{\xi_1},\dots,\ul{\xi_M}\} \text{ and } \ul{\xi_j} \in \mathbb{R}$$ then equation (\ref{eq:discrete1}) becomes
+$$a( \sum_{j=1}^M\xi_j\ul{ \phi_j},\ul{\phi_i}) = L(\ul{\phi_i})\quad \text{for } i=1,\dots,M.\text{ Therefore }$$
+$$\sum_{j=1}^Ma( \ul{ \phi_j},\ul{\phi_i})\xi_j = L(\ul{\phi_i})\quad \text{for } i=1,\dots,M.$$
+This equation may be written in matrix form,
+\begin{equation}
+\label{eq:discrete22}
+A\ul{\xi} = \ul{b},
+\end{equation}
+where $$\ul{b} = (b_i)\in \mathbb{R}^M\; \text{ with } b_i = L(\ul{\phi_i} \text{ and } A = (a_{i,j}) \text{ is an } M\times{M} \text{ matrix with elements } a_{i,j} = a(\ul{\phi_i},\ul{\phi_j}).$$
+Note that from the definition of $A$ we can conclude that it is symmetric. From equation $(\ref{eq:lineq})$,
+$$a(\ul{w},\ul{w}) = a(\sum_{i=1}^M\eta_i\ul{ \phi_i},\sum_{j=1}^M\eta_j\ul{ \phi_j}) = \sum_{i=1}^M \sum_{j=1}^M \eta_ia(\ul{\phi_i },\ul{\phi_j })\eta_j = \ul{\eta}\cdot{A}\ul{\eta},$$
+$$L(\ul{w}) = L(\sum_{i=1}^M\eta_i\ul{ \phi_i}) = \sum_{i=1}^M\eta_iL(\ul{\phi_i })=\ul{b}\cdot\ul{\eta}.$$
+Since from the Lax Milgram Theorem condition (iii) we have $a(\ul{w},\ul{w}) \geq \zeta\|\ul{w}\|_{\bigv}^2 > 0, \text{ providing } \ul{w} \neq 0,$ then $\ul{\eta}\cdot{A}\ul{\eta} > 0.$
+This implies that the matrix $A$ is positive definite and so non-singular. Hence there is a unique solution to the system of linear equations $(\ref{eq:discrete22})$ and so to the discrete form of the problem.
+\subsection{A Priori Error Estimate with piecewise linear functions in 2-D}
+Consider the case where $\bigv = H^1(\Om)$ and \\$V_h = \{\ul{v}\in \bigv\;: \ul{v}\;\text{ is a piecewise linear function defined each triangle}\; K \in T_h\} \text{ where } \\T_h \text{ is a triangulation of } \Om\subset\mathbb{R}^2.$
+For $K\in{T_h}$ define:
+$$h_K = \text{ longest side of } K,$$
+$$\rho_K = \text{ the diameter of the circle inscribed in } K,$$
+$$h = \max_{K\in{T_h}}h_K.$$
+A condition 
+\begin{equation}
+\label{eq:beta1}
+\rho_K/h_K\geq\beta>0,\quad \forall\;K\in{T_h},
+\end{equation}
+is required to ensure that the triangles $K\in{T_h}$ are not allowed to be arbitrarily thin or have angles that are too small.
+Then under these conditions it can be proved \cite{Johnson2012} and \cite{Dupont1980} that the error bounds on any $K\in{T_h}$ are given by:
+\begin{equation}
+\label{eq:error1}
+\|\ul{v}-\ul{v_h}\|_{L_2(K)} \leq Ch_K^2|\ul{v}|_{H^2(K)},
+\end{equation}
+\begin{equation}
+\label{eq:error2}
+|\ul{v}-\ul{v_h}|_{H_1(K)} \leq (Ch_K^2/\rho_K)|\ul{v}|_{H^2(K)},
+\end{equation}
+where $C \in \mathbb{R}$ is a constant that is independent of $h$.
+These results are used to determine the global interpolation errors, $$\|\ul{v}-\ul{v_h}\|_{L_2(\Om)} \text{ and } |\ul{v}-\ul{v_h}|_{H_1(\Om)}.$$
+Summing error over $K\in{T_h}$ and using inequality (\ref{eq:error1})
+$$\|\ul{v}-\ul{v_h}\|_{L_2(\Om)}= \sum_{K\in{T_h}}\|\ul{v}-\ul{v_h}\|_{L_2(K)}^2 \leq \sum_{K\in{T_h}}C^2h_K^4|\ul{v}|_{H^2(K)}^2
+\leq{C}^2h^4\sum_{K\in{T_h}}|\ul{v}|_{H^2(K)}^2 = C^2h^4|\ul{v}|_{H^2(\Om)}^2.$$
+Therefore the global error bound is
+\begin{equation}
+\label{eq:error3}
+\|\ul{v}-\ul{v_h}\|_{L_2(\Om)} \leq Ch^2|\ul{v}|_{H^2(\Om)}.
+\end{equation}
+Similarly for the first derivatives of the global error, summing over $K\in{T_h}$ and using inequalities $(\ref{eq:error2})$ and $(\ref{eq:beta1})$,
+$$|\ul{v}-\ul{v_h}|_{H_1(\Om)}^2 \leq \sum_{K\in{T_h}}C^2(h_K^4/\rho_K^2)|\ul{v}|_{H^2(K)}^2 \leq \sum_{K\in{T_h}}C^2(h_K^2/\beta^2)|\ul{v}|_{H^2(K)}^2 \leq C^2(h^2/\beta^2)|\ul{v}|_{H^2(\Om)}^2.$$
+Therefore the global error bound on the first derivatives is
+\begin{equation}
+\label{eq:error4}
+|\ul{v}-\ul{v_h}|_{H_1(\Om)} \leq C(h/\beta)|\ul{v}|_{H^2(\Om)}
+\end{equation}
+In summary both the continous and discrete versions of the weak velocity equation have unique solutions. The a priori error bounds show that the convergence rate of the method is second order if we use piecewise linear interpolation functions to determine the approximate solution. 
+\section{Finite element solution of velocity equation}
+Suppose the solution $s(x,y,z)$ is radially symmetric about the $z$ axis, then transforming ($\ref{eq:weakvel}$) from Cartesian coordinates $x,y,z$ to cylindrical coordinates $r,\theta,z$ with $x = r\cos{\theta} \text{ and } y = r\sin{\theta} $ and noting that $s = s(r,z,t), w = w(r,z,t), \underline{v}=\underline{v}(r,z,t), $ i.e. there is no dependence on $\theta$, which gives:
+\begin{equation}
+\label{eq:weakvel1} 
+\int_{\Omega(t)}w(r,z,t)\underline{v}Jdrd{\theta}dz = -\int_{\Omega(t)}w(r,z,t)(\al(s)/s)\nabla{s}Jdrd{\theta}dz,
+\end{equation}
+where the Jacobean of the transformation $J=r$.  This reduces to 
+\begin{equation}
+\label{eq:weakvel2} 
+\int_{\Omega(t)} w(r,z,t)\underline{v}rdrdz = -\int_{\Omega(t)}w(r,z,t)(\al{(s)}/s)\nabla{s}rdrdz,
+\end{equation}
+with $(r,z) \in \Omega(t)$ which is now reduced to 2-D.
+The domain $\Omega_h(t)$ is defined by dividing the domain $\Om(t)$ into $N$ triangular elements $T_h$ with $P$ ordered points.
+Let $w(r,z) = \phi_i(r,z) \; i = 1,\dots,P,$ where the functions $\phi_i$ are linear basis functions for the function space $\bigv_h$. 
+Using the above we can write equation ($\ref{eq:weakvel2}$) as
+\begin{equation}
+\label{eq:weakvel3} 
+\int_{\Omega(t)} \phi_i\ul{v}rdrdz = -\int_{\Omega(t)}\phi_i(\al{(s)}/s)\nabla{s}rdrdz,
+\end{equation}
+On domain $\Omega_h$ we have $$s\approx S = \sum_{j=1}^PS_j\phi_j,$$
+$$\al(s) \approx A = \al{(S)},$$
+and
+$$v\approx \ul{V} = \sum_{j=1}^P\ul{V_j}\phi_j.$$
+Substitute these into equation $(\ref{eq:weakvel3})$ gives
+\begin{equation}
+\label{eq:discretevel1}
+\sum_{j=1}^P\ul{V_j}\int_{{\Omega(t)}_h}\phi_i\phi_jrdrdz = -\sum_{j=1}^P{S}_j\int_{{\Omega(t)}_h}(A/S)\phi_i\nabla{\phi_j}rdrdz, \; i = 1,\dots,P.
+\end{equation}
+If $\ul{V_j} = (V_j^r,V_j^z), \; j = 1,\dots,P$ equation ($\ref{eq:discretevel1}$) may be written in matrix form as
+\begin{equation}
+\label{eq:matformvel}
+M\ul{V^r} = -B^r(S)\ul{S}, \text{ and } M\ul{V^z} = -B^z(S)\ul{S},
+\end{equation}
+where $M, B^r(S) \text{ and } B^z(S)$ are $P \times P$ matrices and $\ul{S},\;\ul{V^r} \text{ and }  \ul{V^z}$ are $P \times 1$ vectors. The global mass and advection matrices $M, B^r \text{ and } B^z$ are assembled from the local matrices. The process to determine the local mass and advection matrices is explained below.\\
+Suppose at element level every triangular element $K\in{T_h}$ has mesh points $P_1 (r_1(t),z_1(t)), P_2(r_2(t),z_2(t)), P_3(r_3(t),z_3(t))$ with associated basis functions, $\phi_1, \phi_2 \text{ and } \phi_3$, then suppressing the dependence of $r$ and $z$ on $t$:
+$$ \phi_1(r,z) = (1/2A_e)\left((z_2-z_3)r+(r_3-r_2)z+(r_2z_3-r_3z_2)\right);$$
+$$ \phi_2(r,z) = (1/2A_e)\left((z_3-z_1)r+(r_1-r_3)z+(r_3z_1-r_1z_3)\right);$$
+$$ \phi_3(r,z) = (1/2A_e)\left((z_1-z_2)r+(r_2-r_1)z+(r_1z_2-r_2z_1)\right);$$
+where $A_e$ is the area of the element. For an element and again suppressing the dependence upon $(r,z)$ let:
+$$ S = \sum_{j=1}^3S_j\phi_j;$$
+$$ A = \al(S); \text{ and }$$
+$$ \ul{V} = \sum_{j=1}^3\ul{V_j}\phi_j.$$
+Then on element $K\in T_h$ equation $(\ref{eq:weakvel3})$ gives
+\begin{equation}
+\label{eq:discretevel1}
+\sum_{j=1}^3\ul{V_j}\int_{K}\phi_i\phi_jrdrdz = -\sum_{j=1}^3{S}_j\int_{K}(A/S)\phi_i\nabla{\phi_j}rdrdz, \; i = 1,\dots,3.
+\end{equation}
+Therefore on element $K\in{T_h}$ the local mass matrix $m^K$ is given by:
+\begin{equation}
+\label{eq:massmatrix}
+m_{i,j}^K = \int_K\phi_i\phi_jrdrdz\; \text{ for } i,j = 1,\dots,3.
+\end{equation}
+The local advection matrices $b^{rK} \text{ and } b^{zK}$, where the superscripts $rK \text{ and } zK$,\\ refer to the $r \text{ and } z \text{ directions on the element } K$, are given by:
+\begin{equation}
+\label{eq:advmatrix1}
+b_{i,j}^{rK} = \int_K(A/S)\phi_i\frac{  \pl{ \phi_j}}{\pl{r}   } rdrdz\; \text{ for } i,j = 1,\dots,3.
+\end{equation}
+\begin{equation}
+\label{eq:advmatrix2}
+b_{i,j}^{zK} = \int_K(A/S)\phi_i\frac{  \pl{ \phi_j}}{\pl{z}   } rdrdz\; \text{ for } i,j = 1,\dots,3.
+\end{equation}
+By performing the integration on every $K\in T_h$ we are able to assemble the global matrices $M,  B^r(S), \text{ and } B^z(S)$, refer to \cite{Johnson2012}. In summary using the above approach we can solve equation ($\ref{eq:matformvel}$) using known values of $S$ to determine the velocity of the points in $\Om_h$. This is an important step in solving the problem specified in the introduction. We are now in a position to solve the problem specified in the introduction.
+\section{Combining local mass conservation with FEM to determine numerical solution}
+\subsection{Determine mass from initial data}
+For mass conservation of $s(r,z)$ we require, $\forall \;t$:
+\begin{equation}
+\label{eq:masscon1}
+\int_{\Om(t)}wsrdrdz = c, \text{ a constant}.
+\end{equation}
+Using $$S = \sum_{j=1}^PS_j\phi_j,$$ the discrete form of equation $(\ref{eq:masscon1})$ may be written,
+\begin{equation}
+\label{eq:masscon2}
+\sum_{j=1}^PS_j\int_{\Om(t)}\phi_i\phi_jrdrdz = c_i, i = 1,\dots,P,
+\end{equation}
+or in matrix form,
+\begin{equation}
+\label{eq:masscon3}
+M\ul{S} = \ul{c},
+\end{equation}
+where $M$ is the global Mass Matrix, as defined above in ($\ref{eq:matformvel}$).  Using the initial data in equation $(\ref{eq:masscon3})$, we can determine $\ul{c}$ which remains constant $\forall\; t$.
+\subsection{Determine velocity from initial data}
+Following the process described in section 6 above, equation ($\ref{eq:matformvel}$) is solved using known values of $S$ to determine the velocity $\ul{v_j} = (v_j^r,v_j^z)\; j=1,\dots,M$ of the points in $P_j \in\Om_h$.
+\subsection{Calculate revised mesh points}
+Using the Taylor Series expansion:
+$$ \ul{x}({t+\D{t}) = \ul{x}(t) +\D{t}\ul{x}_t(t)+(\D{t}^2/2)\ul{x}_{tt}(\xi}), \text{ where } t\leq\xi\leq{t+\D{t}},$$
+a first order approximation to the revised positions of the mesh points is given by:
+\begin{equation}
+\label{eq:movmesh1}
+\ul{x_j}(t+\D{t}) = \ul{x_j}(t) +\D{t}\ul{v_j}, \text{ for } j=1,\dots,M.
+\end{equation}
+For a given value of $\D{t}$, substitute the values of $\ul{v}$ from ($\ref{eq:matformvel}$) into equation $(\label{eq:movmesh1})$ to determine the revised positions of the mesh points. To avoid mesh tangling the we select $\D{t}\leq $ is 
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+%
+%
+%
+%  
+%
+%T. In this work it is proposed to solve a discrete verion of the weak form of the velocity equation $\ref{eq:vel}$.  
+%In general terms the computational steps are
+%Discretize the 
+%Consider
+%
+%
+%%Again following \cite{Baines1} let $w$ be a test function, then mass conservation in weak form may be expressed as
+%%$$\frac{d}{dt}\int_{\Omega{(t)}}wsd\Omega = 0$$
+%%Application of Leibnitz rule gives:
+%%$$\frac{d}{dt}\int_{\Omega{(t)}}wsd\Omega =  \int_{\Omega{(t)}}\frac{\pl{}}{ \pl{t}}(ws)d\Omega  +  \int_{\pl\Omega{(t)}  }ws\underline{v}\cdot\underline{\hat{n}  }dS  =   0$$
+%%where $\underline{v}$ is the velocity of the moving domain.
+%%Applying the Divergence Theorem to the surface integral term:
+%%$$\int_{\Omega{(t)}}\frac{\pl{}}{ \pl{t}}(ws)d\Omega  +  \int_{\Omega{(t)}  }\nabla\cdot(ws\underline{v})d\Omega  =   0$$
+%%Expanding the second term:
+%%$$\int_{\Omega{(t)}}\frac{\pl{}}{ \pl{t}}(ws)d\Omega  +  \int_{\Omega{(t)}  }(w\nabla\cdot(s\underline{v}) +s\underline{v}\cdot\nabla{w})   d\Omega  =   0$$
+%%Therefore
+%%$$\int_{\Omega{(t)}} \left(  w\frac{\pl{s}}{ \pl{t}} +s\frac{\pl{w}}{ \pl{t}} +  w\nabla\cdot(s\underline{v}) +s\underline{v}\cdot\nabla{w} \right)  d\Omega  =   0$$
+%%Since the test functions $w$ advect with velocity $\underline{v}$ 
+%%$$ \frac{\pl{w}}{ \pl{t}} + \underline{v}.\nabla{w} = 0 $$
+%%giving
+%%\begin{equation}
+%%\label{eq:masscon11}
+%%\int_{\Omega{(t)}} \left(  w\frac{\pl{s}}{ \pl{t}}  +  w\nabla\cdot(s\underline{v})  \right)  d\Omega  =   0
+%%\end{equation}
+%%Integrating the second term of equation $(\ref{eq:masscon11})$ by parts:
+%%$$\int_{\Omega{(t)}}  w\nabla\cdot(s\underline{v})  d\Omega  =   \int_{\pl{\Omega(t)}}ws\underline{v}\cdot\underline{\hat{n} }dS - \int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega$$
+%%Since there is zero flux on $\pl{\Omega{(t)}}$ the surface integral term is zero giving
+%%\begin{equation}
+%%\label{eq:masscon12}
+%%\int_{\Omega{(t)}}  w\nabla\cdot(s\underline{v})  d\Omega  =   - \int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega
+%%\end{equation}
+%%Substitute equation $(\ref{eq:masscon12})$ into $(\ref{eq:masscon11})$ gives:
+%%\begin{equation}
+%%\label{eq:masscon13}
+%%\int_{\Omega{(t)}}  w\frac{\pl{s}}{ \pl{t}}  - \int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega  =   0 
+%%\end{equation}
+%%Substitute equation $(\ref{eq:pde})$ into $(\ref{eq:masscon13})$
+%%\begin{equation}
+%%\label{eq:masscon14}
+%%\int_{\Omega{(t)}}  w\nabla\cdot(\al{(s)}\nabla{s})d\Omega  - \int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega  =   0 
+%%\end{equation}
+%%Integrating the left hand side of equation $(\ref{eq:masscon14})$ by parts and rearranging:
+%%$$\int_{\pl {\Omega{(t)}}}  w\al{(s)}\nabla{s}\cdot\underline{\hat{n}  }dS - \int_{\Omega{(t)}}\al{(s)}\nabla{s})\cdot\nabla{w}d\Omega  = \int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega $$
+%%Given there is zero flux on the boundary the surface integral term is zero giving:
+%%\begin{equation}
+%%\label{eq:masscon15}
+%%\int_{\Omega{(t) }  }s\underline{v}\cdot\nabla{w}d\Omega = -\int_{\Omega{(t)}}\al{(s)}\nabla{s}\cdot\nabla{w}d\Omega
+%%\end{equation}
+%%As stated in the introduction above it will be simpler from a numerical perspective to work in radial coordinates.Transforming from 2D Cartesian coordinates, $d\Omega =dxdy = Jdrd\theta$ where $J=r$ is the Jacobean of the transformation. Applying this transformation to equation $(\ref{eq:masscon15})$ gives the following result for the weak form of the mass conservation in 2-D radial coordinates:
+%%\begin{equation}
+%%\label{eq:masscon16}
+%%\int_0^{b(t) }r\al(s)\frac{\pl{s}  }{\pl{r} }\frac{\pl{w}  }{\pl{r} }  dr = -\int_0^{b(t)}rv \frac{\pl{w}  }{\pl{r} }dr  
+%%\end{equation}
+%%The next section derives the discrete form of this equation which will be solved to determine the velocity of the moving mesh points. 
+%%%
+%\section{2D Radial Solution using Mass Conservation}
+%The steps to apply mass conservation with FEM are set out below:
+%\begin{itemize}
+%\item \quad Step 1 - Divide the interval $(0,b(t))$ into J+1 intervals i.e. J internal points, such that $0=r_1(t)<r_2(t)<......r_j(t)<r_{j+1}(t)......<r_{J+1}(t)<r_{J+2}(t)=b(t)$. The points do not need to be equally spaced. 
+%\item \quad  Step 2 - Let $w =\phi_i(r)$ where $ i = 1,2,...,J+1$. The $\phi_i(r)$ are piecewise linear basis functions defined on $(0,b(t))$ as follows:
+%$$ {\phi}_i(r) = \frac{r(t)-r_{i-1} }{r_i-r_{i-1} } \text{ for } r_{i-1}(t)\leq r(t) \leq r_i(t)$$,
+%$$ {\phi}_i(r) = \frac{r_{i+1}-r(t) }{r_{i+1}-r_{i} } \text{ for } r_{i}(t)\leq r(t) \leq r_{i+1}(t)$$,
+%$$  {\phi}_i(r)= 0 \text{ elsewhere }$$.
+%At the end intervals
+%$$ {\phi}_1(r) = \frac{r_{2}-r(t) }{r_{2}-r_{1} } \text{ for } r_{1}(t)\leq r(t) \leq r_{2}(t)$$ and
+%$$ {\phi}_{J+2}(r) = \frac{r(t)-r_{J+1 }}{r_{J+2}-r_{J+1} } \text{ for } r_{J+1}(t)\leq r(t) \leq r_{J+2}(t)$$.
+%\item \quad Step 3 - If $r_j^n$ represents the position of the point $r_j$ after time $n\D{t}$, let the approximate numerical solution at $r_j^n$ be $S_j^n$ and the exact solution be $s_j^n$. Then using the same notation for the approximate solutions with $S \approx s$, diffusion coefficient $A \approx \al$ and $\underline{V} \approx \underline{v}$ where:
+%$$S =\sum_{j=1}^{J+2}S_j(t)\phi {_j(r)},$$
+%$$ \frac{\partial{S} }{\partial{r} } =   \sum_{j=1}^{J+2}S_j(t) \frac{  \pl{\phi _j  } }  {   \partial{r}  },         $$
+%$$V =\sum_{j=1}^{J+2}S_j(t)\phi {_j(r)},$$ and
+%$$A =\sum_{j=1}^{J+2}A_j(t)\phi {_j(r)}.$$
+%\item \quad Step 4 - Determine initial values of $S_j ^0 \text{ and }A_j^0 $ for $ j = 1,...,J+2$.
+%\item \quad Step 5 - Calculate local mass elements at time $t=0$, $ c_j^0 = \int_{r_{j-1}^0}^{r_{j}^0}rSdr$ for $j = 1,...,J+1.$ Where 
+%$$ \underline{c}^0 = M^0\underline{S}^0,$$
+%and $M$ is a $J+2 \text { by } J+2$ mass matrix with  
+%\begin{equation}
+%\label{eq:massmatrix}
+%M_{i,j} = \int_{r_i}^{r_{i+1}}r\phi_i\phi_jdr \text{ for } i,j = 1,2,...,J+2.
+%\end{equation}
+%Note that by the definition of the basis functions $\phi_i$, $M$ is tri-diagonal.
+%% make changes here
+%\item \quad Step 6 - To determine the velocity of the mesh points, equation $(\ref{eq:weakvel2})$ is expressed in discrete form and suppressing dependence on $r$ and $t$ in the notation, as follows: 
+%$$   \int_0^{r_{J+2}}rS\sum_{j=1}^{J+2}V_j\phi_j\frac{\pl{\phi_i  }  }{\pl{r}   }dr = - \int_0^{r_{J+2}}rA \frac{\pl{\phi}_i}{\pl{r}}\sum_{j=1}^{J+2}S_j\frac{\pl{\phi_j}} {\pl{r}}dr, $$ 
+% where $ i = 1, 2,......,J+2$. This may be simplified to
+% \begin{equation}
+% \label{eq:masscon17}
+% \sum_{j=1}^{J+2}V_j \int_0^{r_{J+2}}rS\phi_j \frac{\pl{\phi_i} }{\pl{r} }dr = - \sum_{j=1}^{J+2}S_j\int_0^{r_{J+2}}rA\frac{\pl{ \phi_i }  }{\pl{r } } \frac{\pl{ \phi_j }  }{\pl{r } }dr.   
+% \end{equation}
+%%\item \quad Step 6 - To determine the velocity of the mesh points, equation $(\ref{eq:masscon16})$ is expressed in discrete form as follows, suppressing dependence on $r$ and $t$ in the notation:
+%%$$\int_0^{r_{J+2}}rA \frac{\pl{\phi}_i}{\pl{r}}\sum_{j=1}^{J+2}S_j\frac{\pl{\phi_j}} {\pl{r}}dr =
+%% -\int_0^{r_{J+2}}r\sum_{j=1}^{J+2}V_j\phi_j\frac{\pl{\phi_i  }  }{\pl{r}   }dr $$ where $ i = 1, 2,......,J+2$. This may be simplified to
+%% \begin{equation}
+%% \label{eq:masscon17}
+%% \sum_{j=1}^{J+2}S_j\int_0^{r_{J+2}}rA\frac{\pl{ \phi_i }  }{\pl{r } } \frac{\pl{ \phi_j }  }{\pl{r } }dr =
+%%  - \sum_{j=1}^{J+2}V_j \int_0^{r_{J+2}}r\phi_j \frac{\pl{\phi_i} }{\pl{r} }dr  
+%% \end{equation}
+% \item \quad Step 7 - Equation $(\ref{eq:masscon17})$ may be expressed at timestep $n$ in matrix form as 
+% \begin{equation}
+% \label{eq:matrix1}
+% B^n\underline{V}^n  = -P(\underline{S}^n)\underline{S}^n,
+% \end{equation}
+% from which $\underline{V}^n$ may be determined. Here $P^n$ and $B^n $ are matrices with dimension $(J+2) \text{ by } (J+2)$. In addition $\underline{S}$ is a $(J+2)$ vector. The elements of the $P^n$ and $B^n$ are defined as follows:
+% \begin{equation}
+% \label{eq:elmass1}
+%P_{i,j}^n = \int_{r_1}^{r_{J+2}}rA^n\frac{\pl{ \phi_i }  }{\pl{r } } \frac{\pl{ \phi_j }  }{\pl{r}  }dr,
+%\end{equation}
+%and
+%\begin{equation}
+%\label{eq:eladv1}
+%B_{i,j}^n = \int_{r_1}^{r_{J+2}}rS\phi_j\frac{\pl{\phi_i} }{\pl{r} }dr, 
+%\end{equation}
+%where $i, j = 1,2,......,J+2$. From the definition of the basis functions $\phi_i, P_{i,j}^n \text{ and } B_{i,j}^n $ will only be non-zero along the leading diagonal and the sub-diagonals so $P^n$ and $B^n$ are are tri-diagonal. 
+%In order to solve equation $(\ref{eq:matrix1})$ the boundary condition $V_1^n=0 \; \forall \;n,$ is applied.
+%\item \quad Step 8 - The values of $\underline{V}^n$ are used to determine the revised positions of the mesh points after a time $\D{t}$. For stability we take the condition derived from fixed mesh analysis, \cite{ALStability} viz. $\D{t} \leq \D{r}^2/(2\|\ul{A}^1\|_{\D,\infty} )$, where $\D{r} = \min(r_{j+1}^0 -r_j^0) $ and $\ul{A}^1$ is the vector of initial values of the diffusion coefficient $A_j^1$, for $j=1,....,J+1$. In the moving mesh case $\D{r}$ increases with time so the condition is expected to be sufficient for stability. (Note possible subject of further work).
+%$$r_j^{n+1} = r_j^n + V_j^n\D{t} \text{ for } j =1,....,J+2.$$ 
+%Noting that $r_1^n = 0$.
+%\item \quad Step 9 - Having determined the revised mesh points $r_j^{n+1}$, the principle of local mass conservation within an element is used to determine $S_j^{n+1} \text{ for } j = 1,....J+2.$
+%Using step 5 and equation $(\ref{eq:massmatrix})$
+%$$ \underline{c}^{n+1} = M^{n}\underline{S}^{n+1},$$
+%and $$ M_{i,j}^n = \int_{{r_i}^n}^{{r_{i+1}}^n}r\phi_i\phi_jdr \text{ for } i,j = 1,2,...,J+2.$$
+%For local mass conservation
+%$$ \underline{c}^{n+1} = \underline{c}^0,$$
+%giving
+%$$ M^{n}\underline{S}^{n+1} = \underline{c}^0, $$
+%allowing calculation of $\underline{S}^{n+1}.$
+%\item \quad Step 10 The process is repeated from Step 6 until desired computational period $T$ is reached, where $T = n\D{t}.$
+%\end{itemize}
+%\section{Examples}
+%\subsection{2D PME}
+%Figure ($\ref{fig:2}$) shows results for the case $\al(s) = s$. The computed results are compared to the exact solution in 2D given in \cite{Baines2016}. The following table shows the computational results for successive doubling of J, indicating order of convergence  $p\approx 1.4$.\\
+%\\
+%\csvautotabular{FEM_PME_Resultsv_1.csv}\\
+%\\
+%
+%\subsection{2D SFD}
+%Figure ($\ref{fig:3}$) shows results for the SFD case with $\al(s)$ as defined in equation ($\ref{eq:diffco}$) using the specified boundary conditions. The computed results are shown in the following table, where $rB$ represents the dispacement of the boundary node after $t = 0.5$.\\
+%\\
+%\csvautotabular{FEM_SFD_Resultsv_1.csv}\\
+%\\
+%Figure ($\ref{fig:4}$) shows results for the SFD case with $\al(s)$ as defined in equation ($\ref{eq:diffco}$) using a different set of initial data $g(r) = (1/6)(1-r^2)+s_f$. The computed results are shown in the following table, where $rB$ represents the dispacement of the boundary node after $t = 0.5$.\\
+%\\
+%\csvautotabular{FEM_SFD_Resultsv_1_modIC.csv}\\
+%\\
+%\newpage
+%\section{Figures}
+%\begin{figure}[ht!]%[htbp]
+%\centering
+%\subfigure[]{\includegraphics[width=0.5\textwidth]{examplediffusion.eps}}\label{fig:1a}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{exampleSFD.eps}}\label{fig:1b}
+%%\subfigure[third caption.]{\includegraphics[width=0.2\textwidth]{fig1c}}\label{fig:1c}
+%\caption{ (a) Example of standard diffusion process with $\al(s) = s$ after $N = 4.8E03$ timesteps with $J = 40$, $\D{t} = 3.125E-04$ and after a computational period of $t = 1.5$. The initial position is shown in blue, the computed solution in red and the exact solution in green. (b) Example of SFD with $\al(s) = s^{-3/2}$ after $N = 1.28E05$ timesteps with $J = 80$, $\D{t} = 7.8125E-09$ and after a computational period $t = 0.001$. The initial position is shown in blue, the computed solution in red.} \label{fig:1}
+%\end{figure}
+%\newpage
+%\begin{figure}[ht!]%[htbp]
+%\centering
+%\subfigure[]{\includegraphics[width=0.5\textwidth]{2D_J_20_m_1_FEM_t_1_5.eps}}\label{fig:2a}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{2D_J_160_m_1_FEM_t_1_5.eps}}\label{fig:2b}
+%%\subfigure[third caption.]{\includegraphics[width=0.2\textwidth]{fig1c}}\label{fig:1c}
+%\caption{ Figures showing initial position and final position exact and computed after a computational period $t = 0.5$ with $\al(s) = s$. The initial position is shown in blue, the computed solution in red and the exact solution in green. (a) Results with $J = 20$ and $\D{t} = 9.10E-03$. (b) $J = 160$ and $\D{t}=1.5432E-04$.} \label{fig:2}
+%\end{figure}
+%\newpage
+%\begin{figure}[ht!]%[htbp]
+%\centering
+%\subfigure[]{\includegraphics[width=0.5\textwidth]{2D_J_20_SFD_FEM_t_0_5.eps}}\label{fig:3a}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{2D_J_40_SFD_FEM_t_0_5.eps}}\label{fig:3b}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{2D_J_80_SFD_FEM_t_0_5.eps}}\label{fig:3c}
+%%\subfigure[third caption.]{\includegraphics[width=0.2\textwidth]{fig1c}}\label{fig:1c}
+%\caption{ Figures showing initial position and computed final position for SFD after a computational period $t = 0.5$. The initial position is shown in blue and the computed solution in red: results with (a) $J=20$ and $\D{t}=1.1E-03$, (b) $J = 40$ and $\D{t} = 2.9744E-04$ and (c) $J = 80$ and $\D{t}=7.6208E-05$.} \label{fig:3}
+%\end{figure}
+%\newpage
+%\begin{figure}[ht!]%[htbp]
+%\centering
+%\subfigure[]{\includegraphics[width=0.5\textwidth]{2D_J_20_SFD_FEM_t_1_modIC.eps}}\label{fig:4a}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{2D_J_40_SFD_FEM_t_1_modIC.eps}}\label{fig:4b}
+%\subfigure[] {\includegraphics[width=0.5\textwidth]{2D_J_80_SFD_FEM_t_1_modIC.eps}}\label{fig:4c}
+%%\subfigure[third caption.]{\includegraphics[width=0.2\textwidth]{fig1c}}\label{fig:1c}
+%\caption{ Figures showing initial position and computed position for SFD after a computational period $t = 1$. The initial position is shown in blue and the computed solution in red: results with (a) $J=20$,  $\D{t}=1.1E-03$, (b) $J=40$,  $\D{t}=2.9744E-04$ and (c) $J=80$,  $\D{t}=7.6208E-05$ .} \label{fig:4}
+%\end{figure}
+%\newpage
+%
+%
+%
+%
+%
+%
+%
+%\nocite{Lee2014}
+%%\nocite{Morton1}
+%\nocite{Lukyanov2012}
+\bibliography{RefLib}
+\bibliographystyle{plain}
+\newpage
+\appendix
+\begin{appendices}
+\appendixpage
+\section{Helmholtz Fundamental Theorem of Vector Analysis}
+\label{appendix:helmholtz}
+Let \underline{a} be a vector field on a bounded domain $\Omega \subseteq \mathbb{R}{^n}, \text{ with }n=2,3$, which is twice continuously differentiable, and let $S$ be the surface that encloses the domain $\Omega$. Then $\underline{a}$ can be decomposed into a curl-free component and a divergence-free component:
+$$\underline{a} =-\nabla\phi+\nabla \times \underline {w},$$
+where $\phi$ and $\underline{w}$ are respectively the scalar and vector potential of $\underline{a}$.
+\subsection{Corollary 1}
+If $\nabla\cdot{\underline{a}}$ and $\nabla\times{\underline{a}}$ are given the decomposition is unique.
+\subsection{Corollary 2}
+If  $\underline{a}$ is irrotational  $\nabla\times{\underline{a}} = 0\; \implies \exists \text{ a } \phi \ni \underline{a} = -\nabla{\phi}$.
+\subsection{Corollary 3}
+If  $\underline{a}$ is solenoidal  $\nabla\cdot{\underline{a}} = 0\; \implies \exists \; \underline{w} \;\ni \underline{a} = -\nabla\times\underline{w}$.
+\subsection{Application}
+To apply this theorem to our specific problem, we want to solve equation ($\ref{eq:vel0}$) 
+$$\nabla\cdot\left(\al(s)\nabla{s} + s\underline{v}\right)=0,$$ 
+for a unique $\ul{v}$. However it can be seen that if $\ul{v} = (\al{(s)}/s)\nabla{s}$ is a solution then so is $\ul{v} = (\al{(s)}/s)\nabla{s} + (1/s)\nabla\times{\ul{w}}$, for any $\ul{w}$.
+If $\ul{v}$ is irrotational, as stated in our problem, using Helmholtz Corollary 2 above $ \exists \text{ a } \phi \ni \underline{v} = \nabla{\phi}.$
+This means equation ($\ref{eq:vel0}$) can be written 
+\begin{equation}
+\label{eq:Poisson1}
+\nabla\cdot(s\underline{\nabla}{\phi}) = - \nabla\cdot(\al(s)\nabla{s}).
+\end{equation}
+This is a Poisson equation for $\phi$, which by the Uniqueness Theorem, refer to Appendix $\ref{appendix:poisson}$, states that if $s>0$ and a potential $\phi$ satisfies the equation and boundary
+ conditions, then it is a unique solution.
+Hence if $\phi$ is unique then so is $\ul{v}$, which means the solution to equation ($\ref{eq:vel0}$) is $\ul{v} = (\al{(s)}/s)\nabla{s}$.
+
+\section{Uniqueness Theorem Poisson Equation}
+\label{appendix:poisson}
+Suppose we want to solve the following equation for $\phi$:
+\begin{equation}
+\label{eq:poisson2}
+\nabla\cdot(s\nabla{\phi}) = -f(s),
+\end{equation}
+where $s$ is specified on a domain $\Omega$ with boundary $\delta{\Omega}$. This equation is subject to the following boundary conditions (BC):
+either (i) $\phi$ is specified on $\delta{\Omega}$, or (ii) $\ul{v} = -\nabla{\phi}$ is specified on $\delta{\Omega}$.
+There are no restrictions on the boundary which could be at $\infty$.\\
+Suppose there are 2 solutions to ($\ref{eq:poisson2}$), $\phi_1$ and $\phi_2.$
+If $\phi = \phi_1-\phi_2$, then from ($\ref{eq:poisson2}$)
+then
+$$\nabla\cdot(s\nabla(\phi_1)-s\nabla(\phi_2)) = 0,$$
+giving $$\nabla\cdot(s\nabla(\phi_1-\phi_2)) = 0,$$
+$$\nabla\cdot(s\nabla(\phi)) = 0.$$
+This means we can write 
+$$\phi\nabla\cdot(s\nabla{\phi}) = 0.$$
+Using the identity $\nabla\cdot(c\ul{A}) = \nabla{c}\cdot\ul{A} + c\nabla\cdot{\ul{A}}$ with $c = \phi$ and $\ul{A} = s\nabla{\phi}$ gives
+$$ \nabla\cdot( \phi{s}\nabla\phi ) - \nabla\phi\cdot{s}\nabla\phi = 0,$$
+which implies
+$$ \nabla\cdot( \phi{s}\nabla\phi ) - s(\nabla\phi)^2 = 0.$$
+Integrating this equation over $\Omega$ gives
+$$ \int_{\Omega}(\nabla\cdot( \phi{s}\nabla\phi ) - s(\nabla\phi)^2)d\Omega=0.$$ 
+Applying the divergence theorem to the first term:
+$$ \int_{\delta{\Omega}}\phi{s}\nabla{\phi}\cdot\ul{\hat{n}}dS - \int_{\Omega}s(\nabla\phi)^2d\Omega=0.$$
+Now for either BC (i) or (ii) the boundary integral is zero. Hence
+$$ \int_{\Omega}s(\nabla\phi)^2d\Omega=0,$$ 
+since $s>0$ and $(\nabla\phi)^2\geq 0$, this $\implies \nabla{\phi} = 0,$ and so $\phi_1 = \phi_2 + k$ with $k = 0$ for BC (i). Hence equation ($\ref{eq:poisson2}$) has a unique solution. 
+\end{appendices}
+
+
+%-------------end of document body----------
+\end{document}
+
